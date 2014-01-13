@@ -1,4 +1,4 @@
 bike-demo
 =========
 
-exercise bike demonstration scenery
+Exercise bike demonstration scenery
