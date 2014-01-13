@@ -3,7 +3,7 @@
 * BikeDemo - exercise bike demonstration
 * scenery.
 *
-* opt.h - function lmplementations- rela-
+* gen.h - function lmplementations- rela-
 * ted to generating s stream of s binary,
 * architecture specific, stream of execu-
 * table, binary, machine code bytes from
