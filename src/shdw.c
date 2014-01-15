@@ -8,7 +8,7 @@
 * its lexical analyser, and the resulting parsing
 * table.
 *
-* Copyright (C) 2006-2013, Russell Potter, All
+* Copyright (C) 2006-2014, Russell Potter, All
 * Rights Reserved
 *
 ****************************************************************************/
