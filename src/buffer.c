@@ -13,7 +13,7 @@
  * contiguous memory, allocated as needed as the
  * buffer grows
  *
- * Copyright (C) 2009-2012, Russell Potter.
+ * Copyright (C) 2009-2014, Russell Potter.
  * All rights reserved.
  *
  ********************************************************************/
