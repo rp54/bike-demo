@@ -18,7 +18,7 @@
  * arison function (usually passed as a parameter to the
  * routines).
  *
- * Copyright (C) 2006-2013, Russell Potter.
+ * Copyright (C) 2006-2014, Russell Potter.
  * All rights reserved.
  *
  ********************************************************************/
