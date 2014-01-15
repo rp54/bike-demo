@@ -14,7 +14,7 @@
 * a the environment is computation is
 * provided.
 * 
-* Copyright (C) 2006-2012, Russell Potter,
+* Copyright (C) 2006-2014, Russell Potter,
 * All rights reserved
 *
 ******************************************************************/
