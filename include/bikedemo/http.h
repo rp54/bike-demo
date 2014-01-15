@@ -7,7 +7,7 @@
 * structures for sending HTTP requests
 * and parsing HTTP responses.
 *
-* Copyright (C) 2007-2012, Russell Potter.
+* Copyright (C) 2007-2014, Russell Potter.
 * All rights reserved.
 * 
 ***********************************************************************/
