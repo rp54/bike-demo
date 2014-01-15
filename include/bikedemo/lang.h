@@ -11,7 +11,7 @@
 * ity through calling of one of the
 * abstraction's call-backs
 *
-* Copyright (C) 2006-2013, Russell Potter,
+* Copyright (C) 2006-2014, Russell Potter,
 * All Rights Reserved
 *
 ******************************************************************/
