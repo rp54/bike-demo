@@ -9,7 +9,7 @@
 * node may be located via a "path expr-
 * ession" selative to another node.
 *
-* Copyright (C) 2007-2013, Russell Potter. All
+* Copyright (C) 2007-2014, Russell Potter. All
 * rights reserved.
 * 
 ***********************************************************************/
