@@ -22,7 +22,7 @@
 * result document in place of the input
 * node
 *
-* Copyright (C) 2007-2013, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved
 *
 **************************************************************/
