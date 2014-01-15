@@ -9,7 +9,7 @@
 * them to behave in a a manner consistent with
 the DOM specification.
 * 
-* Copyright (C) 2007-2013, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
