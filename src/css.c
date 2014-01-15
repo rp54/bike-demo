@@ -7,7 +7,7 @@
 * to the W3C's Cascading Style-sheets (CSS) specif-
 * ication (2007 snapshot).
 *
-* Copyright (C) 2006-2013, Russell Potter, All
+* Copyright (C) 2006-2014, Russell Potter, All
 * Rights Reserved
 *
 ****************************************************************************/
