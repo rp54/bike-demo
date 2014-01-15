@@ -7,7 +7,7 @@
 * events specification, as defined at "http://www.w3.
 * org/TR/DOM-Level-3-Events"
 * 
-* Copyright (C) 2007-2012, Russell Potter All rights
+* Copyright (C) 2007-2014, Russell Potter All rights
 * reservedt
 *
 *********************************************************************/
