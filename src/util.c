@@ -9,7 +9,7 @@
 * nt strings, implemented here in a consolid-
 * ated location.
 *
-* Copyright (C) 2007-2013, Russell Potter. All
+* Copyright (C) 2007-2014, Russell Potter. All
 * rights reserved.
 * 
 ***********************************************************************/
