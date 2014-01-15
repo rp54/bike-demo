@@ -12,7 +12,7 @@
 * sation can no longer improve the code.
 *
 *
-* Copyright (C) 2007-2013, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
