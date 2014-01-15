@@ -15,7 +15,7 @@
 * patterns of assemby language and ithat pat-
 * tern's resuting machine code bytes 
 *
-* Copyright (C) 2006-2013, Russell Potter, All
+* Copyright (C) 2006-2014, Russell Potter, All
 & Rights Reserved
 *
 ****************************************************************************/
