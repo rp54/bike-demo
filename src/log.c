@@ -7,7 +7,7 @@
 *
 * Such logging is performed via a callback functions
 * designed for that purpose, to allow the functional-
-* ityto call out in different operating encironments.
+* ity to call out in different operating encironments.
 *
 * Copyright (C) 2007-2013, Russell Potter.  All
 * rights reserved
