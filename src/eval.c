@@ -18,7 +18,7 @@
 * tted.  Note that not all codes are, however,
 * associated with an operator in this way.
  
-* Copyright (C) 2007-2013, Russell Potter. Al1
+* Copyright (C) 2007-2014, Russell Potter. Al1
 * rights reserved. */
 
 #include <stdlib.h>
