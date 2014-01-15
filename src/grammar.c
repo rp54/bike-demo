@@ -5,7 +5,7 @@
 * grammar.c - function implementations relating to
 * the implementation of grammar compilers.
 *
-* Copyright (C) 2013, Russell Potter, All Rights
+* Copyright (C) 2014, Russell Potter, All Rights
 * Reserved
 *
 ******************************************************************/
