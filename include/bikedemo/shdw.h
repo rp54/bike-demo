@@ -18,7 +18,7 @@
 * verts it to a stream of machine code us-
 * ing a similar pattern-matching process
 *
-* Copyright (C) 2007-2012, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
