@@ -11,7 +11,7 @@
 * ment and returns an XML document having equiva-
 * lent content
 * 
-* Copyright (C) 2007-2013, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
