@@ -19,7 +19,7 @@
 * in this obode are fvconformant to the 
 * W3C "selectors 4" standard
 * 
-* Copyright (C) 2007-2013, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved
 *
 *********************************************************************/
