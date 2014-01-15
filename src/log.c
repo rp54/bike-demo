@@ -9,7 +9,7 @@
 * designed for that purpose, to allow the functional-
 * ity to call out in different operating encironments.
 *
-* Copyright (C) 2007-2013, Russell Potter.  All
+* Copyright (C) 2007-2014, Russell Potter.  All
 * rights reserved
 *
 *********************************************************************/
