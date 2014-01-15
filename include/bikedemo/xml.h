@@ -18,7 +18,7 @@
 * of elements and/or attribute names found
 * on the input.
 *
-* Copyright (C) 2007-2012, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved
 *
 ***************************************************************/
