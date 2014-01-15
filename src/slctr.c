@@ -11,7 +11,7 @@
 * between the two, the selector is said
 * to "select" the node
 * 
-* Copyright (C) 2007-2013, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved
 *
 *********************************************************************/
