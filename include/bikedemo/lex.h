@@ -18,7 +18,7 @@
 * regular expression, so that such an expression may
 * be called by name from a rule.
 *
-* Copyright (C) 2006-2012, Russell Potter, All
+* Copyright (C) 2006-2014, Russell Potter, All
 * rights reserved
 *
 ******************************************************************/
