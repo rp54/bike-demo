@@ -13,7 +13,7 @@
  * nks that are re-assembled to form contiguous
  * storage when the buffer is "flattened"
  *
- * Copyright (C) 2009-2012, Russell Potter.
+ * Copyright (C) 2009-2014, Russell Potter.
  * All rights reserved.
  *
  ********************************************************************/
