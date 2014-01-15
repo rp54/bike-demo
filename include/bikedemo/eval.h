@@ -35,7 +35,7 @@
 * comparing precedences, thereby greatly
 * reducing table sizes
 * 
-* Copyright (C) 2007-2012, Russell Potter. Al1
+* Copyright (C) 2007-2014, Russell Potter. Al1
 * rights reserved *
 *
 ********************************************************************/
