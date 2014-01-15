@@ -24,7 +24,7 @@
 * proto-types include those to populate the
 * parser'sgrammar productions and lexical rules.
 *
-* Copyright (C) 2007-2013, Russell Potter,
+* Copyright (C) 2007-2014, 4Russell Potter,
 * All rights reserved
 *
 *********************************************************************/
