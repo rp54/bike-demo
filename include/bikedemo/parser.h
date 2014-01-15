@@ -12,7 +12,7 @@
 * time structure used to generate correct run-
 * time environment.
 * 
-* Copyright (C) 2006-2012, Russell Potter,
+* Copyright (C) 2006-2014, Russell Potter,
 * All rights reserved
 *
 ******************************************************************/
