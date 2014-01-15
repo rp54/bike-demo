@@ -18,7 +18,7 @@
 * tion is true and notify" (wake) waiting
 * threads
 *
-* Copyright (C) 2007-2012, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved
 *
 **************************************************************/
