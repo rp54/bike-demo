@@ -1,4 +1,3 @@
-
 /********************************************************************
 *
 * BikeDemo - Exercise bike demonstration scenery
