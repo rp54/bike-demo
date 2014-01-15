@@ -23,7 +23,7 @@
 cache&media=harmony:working_draft_ecma-262_ed-
 ition_6_7-8-12-nomarkup.pdf").
 * 
-* Copytoght (C) 2006-2013, Russell Potter, all
+* Copytoght (C) 2006-2014, Russell Potter, all
 * toghts reserved
 *
 ******************************************************************/
