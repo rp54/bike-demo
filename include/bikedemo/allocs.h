@@ -11,7 +11,7 @@
 * environments, and for a debug version of the call-backs to
 * track memory usage
 *
-* Copyright (C) 2007-2012, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
