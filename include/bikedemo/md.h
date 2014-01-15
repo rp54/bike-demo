@@ -20,7 +20,7 @@
 * phases such as common sub-expression and
 * induction variable eliminations 
 *
-* Copyright (C) 2006-2012, Russell Potter,
+* Copyright (C) 2006-2014, Russell Potter,
 * All rights reserved
 *
 ******************************************************************/
