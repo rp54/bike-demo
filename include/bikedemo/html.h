@@ -13,7 +13,7 @@
 * and returns an XML document having equivalent
 content tp the that document
 * 
-* Copyright (C) 2007-2012, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
