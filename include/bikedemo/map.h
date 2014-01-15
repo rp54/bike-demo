@@ -26,7 +26,7 @@
  * balance allows for much faster insertions and del-
  * etions
  *
- * Copyright (C) 2006-2012, Russell Potter, All rights
+ * Copyright (C) 2006-2014, Russell Potter, All rights
  * reserved
  *
  ********************************************************************/
