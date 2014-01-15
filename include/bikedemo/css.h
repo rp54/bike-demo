@@ -13,7 +13,7 @@
 * may also then "cascade"  upward to its
 * parent elements as necessary.
 * 
-* Copyright (C) 2007-2012, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved
 *
 *********************************************************************/
