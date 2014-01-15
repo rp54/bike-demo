@@ -9,7 +9,7 @@
 * ing the element's DOM interface, and a
 * template representing its XML content
 * 
-* Copyright (C) 2006-2013, Russell Potter,
+* Copyright (C) 2006-2014, Russell Potter,
 * All rights reserved
 *
 ******************************************************************/
