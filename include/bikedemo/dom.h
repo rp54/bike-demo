@@ -9,7 +9,7 @@
 * as well as load snd save them to and from input
 * and output streams.
 *
-* Copyright (C) 2007-2012, Russell Potter
+* Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
 *
 *********************************************************************/
