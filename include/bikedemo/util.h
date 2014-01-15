@@ -9,7 +9,7 @@
 * data buffers, code-point strings and UTF
 * conversions.
 *
-* Copyright (C) 2007-2012, Russell Potter,
+* Copyright (C) 2007-2014, Russell Potter,
 * All rights reserved.
 * 
 ***********************************************************************/
