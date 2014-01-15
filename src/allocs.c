@@ -6,7 +6,7 @@
 * allocs.c - function implementations for
 * memory allocation and deallocation.
 *
-* Copyright (C) 2006-2012, Russell Potter.
+* Copyright (C) 2006-2014, Russell Potter.
 * All rights reserved.
 *
 ********************************************************************/
