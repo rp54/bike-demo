@@ -1,4 +1,12 @@
+
 bike-demo
 =========
 
 Exercise bike demonstration scenery
+
+intallation
+===========
+
+$ ./configure [options]
+$ make
+$ make install
