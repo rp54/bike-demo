@@ -100,12 +100,13 @@ enum bdxp_ops {
     bdxp_op_cst,
     bdxp_op_pos,
     bdxp_op_mp,
-    bdxp_op_pth,
+    bdxp_op_rpth,
+    bdxp_op_ipth,
     bdxp_op_arry
 };
 
 /* bdxp_nts" the non-terminals
- * of the X-PATH fgrammar */
+ * of the X-PATH grammar */
 enum bdxp_nts {
 
     bdxp_nt_xpth,
@@ -124,8 +125,6 @@ enum bdxp_nts {
     bdxp_nt_and_expr,
     bdxp_nt_expr_sngle,
     bdxp_nt_prm,
-    bdxp_nt_cma_prm,
-    bdxp_nt_cma_prm_list,
     bdxp_nt_gnrl_comp,
     bdxp_nt_val_comp,
     bdxp_nt_nde_comp,
@@ -191,10 +190,16 @@ enum bdxp_nts {
 
     bdxp_tok_id,                         /* identifier "$id" */
     bdxp_tok_str,                        /* string "'abc'" */
-    bdxp_tok_num,                        /* number "[0-9]+" */
+    bdxp_tok_int,                        /* integer "[0-9]+" */
+    bdxp_tok_dec,                        /* decimal
+                                          * number "[0-9]+" */
     bdxp_tok_dble,                       /* floating point
                                           * number "[0-9]+[eE].
-	                                      * [0-9]+[0-9]+" */
+                                          * [0-9]+[0-9]+" */
+    bdxp_tok_uri,                        /* URI
+                                          * "http://abc.com" */
+    bdxp_tok_brced,                      /* braced URI
+                                          * "Q{uri}" */
     bdxp_tok_fsl,                        /* forward slash "/" */
     bdxp_tok_dfsl,                       /* double
                                           * forward slash "//" */
