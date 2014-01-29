@@ -122,9 +122,11 @@ int chr_in(char chr,
         i < num && va_arg(args, char) == chr;
         i++) {
 
-    /* returns non-zero if
-     * "chr" matches at all
-     * in the list */
+    /* "i" will equal "num" (and
+     * thereby return non-zero)
+     *  if "chr" matches all in
+     * the list */
+    return i == num;
 }
 
 /*  "get_attr" - returns the value
@@ -139,9 +141,9 @@ int chr_in(char chr,
         char b; /* utility
                  * character */
 
-    /* if rogress to next byte
-     * if"**pos" is either white-
-     * space or '/' */
+    /* progress to next byte
+     * if "**pos" is either
+     * white-space or '/' */
     while (chr_in(**pos,
                   6,
                   '\t',
@@ -165,16 +167,14 @@ name:
      * ourselves at the
      * start the attribute
      * name, and set it and
-     * set it and the
-     * attribute value to
-     * empty strings  */
+     * the attribute value
+     *  to empty strings  */
     else {
-        pos = nme;
+        *pos = *nme;
         *nme = "";
         return "";
     }
 
-name:
     /* process input ... */
     switch (**pos) {
 
@@ -197,16 +197,6 @@ name:
         case ' ':
             goto spaces;
 
-        /* then, if "**pos"
-         * is any of the
-         * following ... */
-        case '\t':
-        case '\n':
-        case '\f':
-        case '\r':
-        case ' ':
-            goto spaces;
-
         /* otherwise, if
          * is a space
          * or '/', abort */
@@ -215,10 +205,11 @@ name:
             return "";
 
         /* and. if position is
-         * alphabetic, add 0x20
-         * to value to append
-         * to name  */
-
+         * alphabetic, append
+         * its lower-case equiv-
+         * alent of the input
+         * to the attribute's
+         * name  */
         case 'A': case 'B': case 'C':
         case 'D': case 'E': case 'F':
         case 'G': case 'H': case 'I':
@@ -228,9 +219,13 @@ name:
         case 'S': case 'T': case 'U':
         case 'V': case 'W': case 'X':
         case 'Y': case 'Z': case 'Z':
-            (*nme)++ = ((**pos)++ + 0x20);
+            (*nme)++ = ((**pos)++ + 20);
             break;
 
+        /* or otherwise just
+         * append the  input
+         * to the attribute's
+         * name */
         default:
             (*nme)++ = (**pos)++;
             break;
@@ -281,37 +276,85 @@ spaces:
              * character and
              * progress */
             b = **pos;
-rpt:
+val:
             (pos)++;
 
             if (b == **pos) {
                 (*pos)++;
+                return ret;
+
+            } else if (**pos > 'A' &&
+                       **pos < 'Z')
+                *ret++ = (*pos++ + 0x20);
+            else
+            ret++ = **pos++;
+            goto val;
+
+        case '>':
+            return "";
+
+        /* if position is
+         * alphabetic, append
+         * its lower-case equiv-
+         * alent of the input
+         * to the attribute's
+         * value  */
+        case 'A': case 'B': case 'C':
+        case 'D': case 'E': case 'F':
+        case 'G': case 'H': case 'I':
+        case 'J': case 'K': case 'L':
+        case 'M': case 'N': case 'O':
+        case 'P': case 'Q': case 'R':
+        case 'S': case 'T': case 'U':
+        case 'V': case 'W': case 'X':
+        case 'Y': case 'Z': case 'Z':
+            (*ret)++ = ((**pos)++ + 20);
+            break;
+
+        /* or otherwise just
+         * append the  input
+         * to the attribute's
+         * value */
+        default:
+            (*ret)++ = (**pos)++;
+            break;
+    }
+
+    /*  process input ... */
+    switch (**pos)
+
+        case '>':
+            return "";
+
+        case '\t':
+        case '\r':
+        case '\n':
+        case '\f':
+        case ' ':
             return ret;
 
-           } else
+        /* and, again, if pos-
+         * ition is alphabetic,
+         * append its lower-
+         * case equivalent of
+         * the input to the
+         * attribute's value  */
+        case 'A': case 'B': case 'C':
+        case 'D': case 'E': case 'F':
+        case 'G': case 'H': case 'I':
+        case 'J': case 'K': case 'L':
+        case 'M': case 'N': case 'O':
+        case 'P': case 'Q': case 'R':
+        case 'S': case 'T': case 'U':
+        case 'V': case 'W': case 'X':
+        case 'Y': case 'Z': case 'Z':
+            (*ret)++ = ((*pos)++ + 20);
+            break;
 
-    /* set up character to
-     * append to attribute
-     * value  */
-    dst = **pos;
-
-    /* and. id of if position
-     * is alhabetic, add 0x20
-     * to that value  */
- 
-    if (**pos > 'A' &&
-        **pos < 'Z')
-        dst += 0x20;
-
-    /* apprnebnd hthe value
-     * to the attribute value
-     * (the return value) */
-    (*ret)++ = dst;
-
-
-    if (**pos == '>')
-        return "";
-
+        default:
+             (*ret)++ = (**pos)++;
+            break;
+    }
     return ret;
 }
 
@@ -325,7 +368,7 @@ rpt:
  * allocator and error logger given
  * in "allocs" and "logger", resp-
  * ectively.  Returns NULL on error */
-struct enc_cnfdnce *mke_enc_cnfdnce(
+struct enc_cnfdnce *mke_cnfdnce(
              char *enc,
              enum bdhm_cnfdnce cnfdnce,
              struct bd_allocs *allocs,
@@ -350,21 +393,112 @@ struct enc_cnfdnce *mke_enc_cnfdnce(
 
 /* "sniff_enc" - "sniffs" (to use the
  * terminology of the spec.) and ret-
- * urns the name of, the encoding of
- * the HTML formatted array of bytes
- * given in "buf", setting the con-
- * fidence level of the detection in
- * "cnfdnce", uasing the content-type
- * (where known: NULL if not).  Retu-
- * rns NULL on error. Note that, acc-
- * ording to the spec., the length
- * of "buf" is guaranteed to be less
- * than 1024 */
-int char *sniff_enc(char *buf,
-                    char *ctype,
-                    enum bdhm_cnfdnces *cnfdnce)
+ * urns the encoding, and confidence,
+ * of the HTML formatted array of
+ * "raw" bytes given in "buf", using
+ * the content-type ocerride ans tra-
+ * nsport layer encdings (where known:
+ * NULL if not for both).  Returns
+ * NULL on error.  Note that, accord-
+ * ing to the spec.,the encoding is
+ * guaranteed to be determinable
+ * within the first 1024 bytes of
+ * "buf" */
+int struct bdhm_cnfdnce *sniff_enc(char *buf,
+                                   char *ovrrde,
+                                   char *trnsprt)
 {
-    return "";
+    char *mode,                /* mode name */
+    struct bd_map_node *encs = /* list of */
+                        NULL,  /* encodings */
+                       *attrs; /* attribute
+    int unrecog_enc,            * list */
+	/* unrecog-
+                               * nised
+                               * encoding */
+        got_prgma;
+
+    /* if either an override or transport
+     * layer encoding is present, return
+     * with it as "certain" */
+    if (ovrrde)
+    return mke_cnfdnce(ovrrde,
+                       bdhm_cnfdnce_crtn);
+    if (trnsprt)
+    return mke_cnfdnce(trnsprt,
+                       bdhm_cnfdnce_crtn);
+
+    /* check for the presence of a Byte
+     * Order Mark value in the first
+     * two bytes of "buf" indicating
+	 * known "certain" encodings */
+    switch (*buf & buf[1] << 8) {
+
+         case 0xFEFF:
+             return mke_cnfdnce("UTF-16 BE",
+                                bdhm_cnfdnce_crtn);
+
+        case 0xFEFF:
+             return mke_cnfdnce("UTF-16 LE",
+                                bdhm_cnfdnce_crtn);
+    }
+
+    /* and check the first three bytes
+     * for UTF-8 */
+    if (*buf     == 0xEF &&
+          buf[1] == 0xBB &&
+          buf[2] == 0xBF)
+        return mke_cnfdnce("UTF-8",
+                           bdhm_cnfdnce_crtn);
+
+    /* iterate through "buf" until
+     * an encoding is found or
+     * "buf" points at a '<' */
+    while (!(enc))
+		if (*buf == '<') {
+
+            /* if we're at a comment,
+             * skip to the end of it */
+            if (buf[1] == '!' &&
+                buf[2] == '-' &&
+                buf[3] == '-')
+                while (!(*buf   == '-' &&
+                         buf[1] == '-' &&
+                         buf[2] == '>'))
+                    buf++;
+
+
+
+        /*  if we're at the start of
+         * a "META" element .... */
+        else if (buf[1] == 'm' || buf[1] == 'M') &&
+                (buf[2] == 'e' || buf[2] == 'E') &&
+                (buf[3] == 't' || buf[3] == 'T') &&
+                (buf[4] == 'a' || buf[4] == 'A') &&
+                (buf[5] == '\n' ||
+                 buf[5] == '\r' ||
+                 buf[5] == '\t' ||
+                 buf[5] == '\f' ||
+                 buf[5] == ' ') {
+
+        } else if ((*buf > 'a' && *buf < 'z') ||
+                   *buf > 'A' && *buf < 'Z')
+
+        while (*buf != '\t' &&
+               *buf != '\r' &&
+               *buf != '\n' &&
+               *buf != '\f' &&
+               *buf != ' ')
+            buf++;
+
+        else if (buf[1] == '!' ||
+                 buf[1] == '/' ||
+                 buf[1] == '?')
+            while (*buf != '>')
+	            *buf++;
+
+
+    }
 }
 
 /* "ld_prsr" = load the lexical analyser
