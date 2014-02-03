@@ -2,9 +2,9 @@
 *
 * BikeDemo - exercise bike demonstration scenery.
 *
-* html.c - function implementationa related to
-* the Hyper-Text Markup Language (HTML), a legacy,
-* SGML-like format commonly * used prior to the
+* html.c - function implementations related to
+* the Hyper-Text Markup Language (HTML), a legacy
+* SGML-like format commonly used prior to the
 * advent of XML.
 *
 * This implementation parses an input HTML docu-
@@ -17,6 +17,7 @@
 *********************************************************************/
 
 #include <stdarg.h>
+#include <iconv.h>
 #include <bikedemo/allocs.h>
 #include <bikedemo/log.h>
 #include <bikedemo/xml.h>
@@ -135,7 +136,7 @@ int chr_in(char chr,
  * contents of the pointer given
  * in "pos", and setting the name
  * of the attribute name to "nme" */ 
- * tic char *get_attr(char **pos,
+static char *get_attr(char **pos,
                       char **nme)
 {
         char b; /* utility
@@ -358,6 +359,14 @@ val:
     return ret;
 }
 
+    /* return a "flattened"
+     * version of the buffer */
+    return (char *) bdbf_flttn(buf,
+                               allocs,
+                               logger); 
+}
+
+
 
 /* "mke_enc_cnfdnce" - returns the
  * encoding confidence having s a
@@ -368,7 +377,7 @@ val:
  * allocator and error logger given
  * in "allocs" and "logger", resp-
  * ectively.  Returns NULL on error */
-struct enc_cnfdnce *mke_cnfdnce(
+static struct enc_cnfdnce *mke_cnfdnce(
              char *enc,
              enum bdhm_cnfdnce cnfdnce,
              struct bd_allocs *allocs,
@@ -391,42 +400,211 @@ struct enc_cnfdnce *mke_cnfdnce(
     return ret;
 }
 
+/* "enc_frm_ctype" -  returns an enc-
+ * oding name from a content type, gi-
+ * ven a chaaracter array the nbegi-
+ * nning of which is given in "s",
+ * ahhd the length of which is given
+ * in "len", idusing the memory all-
+ * ocator and error logger given in
+ * "allocs" anfd "logger", respec-
+ * tively */
+static char *enc_frm_ctype(
+                     char *s,
+                     int len,
+                    struct bd_allocs *allocs,
+                    struct bd_logger *logger)
+{
+    int i;
+    struct bdbf_buffer *buf;
+
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(char))))
+        return NULL;
+    
+loop:
+    /* iterate until either we find the
+     * (case-insensitive) string "charset",
+     *  or run out of space */
+    for (i = 0;
+        (!(*s   == ''c' || *s   == 'C') &&
+          (s[1] == ''h' || s[1] == 'H') &&
+          (s[2] == ''a' || s[2] == 'A') &&
+          (s[3] == ''r' || s[3] == 'R') &&
+          (s[4] == ''s' || s[4] == 'S') &&
+          (s[5] == ''e' || s[5] == 'E') &&
+          (s[6] == ''t' || s[5] == 'T') &&))
+          i < len) {
+        s++;
+        i++;
+    }
+
+
+    /* if the string was
+     * not found, return
+     * "nothing" */
+    if (i == end)
+        return NULL;
+
+    /* skip white-space ... */
+    for (; *s == '\t' &&
+           *s == '\n' &&
+           *s == '\r' &&
+           *s == '\f' &&
+           *s == ' '; i < len) {
+                i++;
+                s++;
+            }
+
+    /* if the next character
+     * isn't an equal sign,
+     * back-track one position
+     * and jump to "loop" */
+    if (*s != '=') {
+        *s--;
+        goto loop;
+    }
+
+    /* skip white-space,
+     * returning an error
+     * if we get to the
+     * end of the string */
+    for (; *s == '\t' &&
+           *s == '\n' &&
+           *s == '\r' &&
+           *s == '\f' &&
+		   *s == ' '; i < len) {
+            i++;
+            s++;
+        }
+    if (i == len)
+        return NULL;
+
+    /* to skip the equal
+     * sign */
+    s++;
+    i++;
+    /* again, skip white-
+     * space, returning an
+     * error if we get to
+     * the end of the string */
+    for (; *s == '\t' &&
+           *s == '\n' &&
+           *s == '\r' &&
+           *s == '\f' &&
+           *s == ' '; i < len) {
+        i++;
+        s++);
+    }
+
+    /* set the quote character */
+    if (*s == '"')
+        qchr = '"';
+    if (*s == '\'')
+        qchr = '\'';
+
+    /* once we see a quote
+     * character, store sub-
+     * sequent characters
+     * (skipping the begin
+     * and end quote chara-
+     * cters themselves) 
+     * into "buf", up to
+     * the next quote cha-
+     * racter */
+    if (*s == qchr) {
+
+        /* skip the open
+         * quote character */
+        s++;
+        i++;
+
+        /* add "*s" to "buf" */
+		while (*s != qchr) {
+            if (!(bdbf_add(buf,
+                           allocs,
+                           logger,
+                           (void *)
+                               *s)))
+                return NULL;
+
+            /* skip thr close quote
+             * character */
+            s++;
+            i++;
+        }
+
+    } else {
+        /* or, no quote was found,
+         * store charactwers only
+         * up to the first white-
+         * space */
+        while (*s != '\t' &&
+               *s != '\r' &&
+               *s != '\n' &&
+               *s != '\f' &&
+               *s != ' ') {
+            if (!(bdbf_add(buf,
+                           allocs,
+                           logger,
+                           (void *)
+                               *s)))
+                return NULL;
+            s++;
+            i++;
+        }
+
+        /* return a "flattened"
+         * version of the buffer */
+        return (char *) bdbf_flttn(buf,
+                                   allocs,
+                                   logger); 
+    }
+}
+
 /* "sniff_enc" - "sniffs" (to use the
  * terminology of the spec.) and ret-
  * urns the encoding, and confidence,
  * of the HTML formatted array of
  * "raw" bytes given in "buf", using
- * the content-type ocerride ans tra-
- * nsport layer encdings (where known:
- * NULL if not for both).  Returns
- * NULL on error.  Note that, accord-
- * ing to the spec.,the encoding is
- * guaranteed to be determinable
- * within the first 1024 bytes of
- * "buf" */
-int struct bdhm_cnfdnce *sniff_enc(char *buf,
-                                   char *ovrrde,
-                                   char *trnsprt)
+ * the transport layer encding (NULL
+ * if not known) ficven in"trnsprt",
+ * using the memory allocator and er-
+ * ror logger given in "allocs" and
+ * "logger", respectively.  Returns
+ * NULL on error */
+static struct bdhm_cnfdnce *sniff_enc(
+                         char *buf,
+                         char *trnsprt,
+                         struct bd_allocs *allocs,
+                         struct bd_logger *logger)
 {
-    char *mode,                /* mode name */
-    struct bd_map_node *encs = /* list of */
-                        NULL,  /* encodings */
-                       *attrs; /* attribute
-    int unrecog_enc,            * list */
-	/* unrecog-
-                               * nised
-                               * encoding */
-        got_prgma;
+    char *ret,*mode,                 /* return value,*/ 
+         *chrst,attr_nme;            /* mode, char-set */
+                                     /* and ist of
+                                      * attribute */
+    struct bd_map_node *encs = NULL; /* names */
+                           ,         /* list of encodings, */
+                       *attrs,       /* attribute */
+                       *attr_node;   /* list and
+                                      * attribute
+                                    * node */ 
+int unrecog_chrst,                 /* char-set is
+                                    * unrecognised */
+    got_prgma;                     /* whether we
+                                    * have a
+                                    * "pragma" */
 
-    /* if either an override or transport
-     * layer encoding is present, return
+
+    /* if either the transport layer
+     * encoding is present, return
      * with it as "certain" */
-    if (ovrrde)
-    return mke_cnfdnce(ovrrde,
-                       bdhm_cnfdnce_crtn);
     if (trnsprt)
     return mke_cnfdnce(trnsprt,
-                       bdhm_cnfdnce_crtn);
+                       bdhm_cnfdnce_crtn,
+                       allocs,
+                       logger);
 
     /* check for the presence of a Byte
      * Order Mark value in the first
@@ -435,69 +613,183 @@ int struct bdhm_cnfdnce *sniff_enc(char *buf,
     switch (*buf & buf[1] << 8) {
 
          case 0xFEFF:
-             return mke_cnfdnce("UTF-16 BE",
-                                bdhm_cnfdnce_crtn);
+             return mke_cnfdnce("UTF-16BE",
+                                bdhm_cnfdnce_crtn,
+                                allocs,
+                                logger);
 
         case 0xFEFF:
-             return mke_cnfdnce("UTF-16 LE",
-                                bdhm_cnfdnce_crtn);
+             return mke_cnfdnce("UTF-16LE",
+                                bdhm_cnfdnce_crtn,
+                                allocs,
+                                logger);
     }
 
     /* and check the first three bytes
      * for UTF-8 */
-    if (*buf     == 0xEF &&
-          buf[1] == 0xBB &&
-          buf[2] == 0xBF)
+    if (*buf    == 0xEF &&
+         buf[1] == 0xBB &&
+         buf[2] == 0xBF)
         return mke_cnfdnce("UTF-8",
-                           bdhm_cnfdnce_crtn);
+                           bdhm_cnfdnce_crtnm,
+                           allocs,
+                           logger);
 
     /* iterate through "buf" until
      * an encoding is found or
      * "buf" points at a '<' */
-    while (!(enc))
-		if (*buf == '<') {
+    while (!(ret))
+        if (*buf == '<') {
+
+first:
 
             /* if we're at a comment,
              * skip to the end of it */
             if (buf[1] == '!' &&
                 buf[2] == '-' &&
                 buf[3] == '-')
-                while (!(*buf   == '-' &&
-                         buf[1] == '-' &&
-                         buf[2] == '>'))
+                while (!(*buf   != '-' &&
+                         buf[1] != '-' &&
+                         buf[2]	!= '>'))
                     buf++;
-
-
+           
+            /* skip past the "-->" */
+            buf += 3;
 
         /*  if we're at the start of
          * a "META" element .... */
-        else if (buf[1] == 'm' || buf[1] == 'M') &&
-                (buf[2] == 'e' || buf[2] == 'E') &&
-                (buf[3] == 't' || buf[3] == 'T') &&
-                (buf[4] == 'a' || buf[4] == 'A') &&
-                (buf[5] == '\n' ||
-                 buf[5] == '\r' ||
-                 buf[5] == '\t' ||
-                 buf[5] == '\f' ||
-                 buf[5] == ' ') {
+        } else if (buf[1] == 'm' || buf[1] == 'M') &&
+                  (buf[2] == 'e' || buf[2] == 'E') &&
+                  (buf[3] == 't' || buf[3] == 'T') &&
+                  (buf[4] == 'a' || buf[4] == 'A') &&
+                  (buf[5] == '\n' ||
+                   buf[5] == '\r' ||
+                   buf[5] == '\t' ||
+                   buf[5] == '\f' ||
+                   buf[5] == ' ') {
 
-        } else if ((*buf > 'a' && *buf < 'z') ||
-                   *buf > 'A' && *buf < 'Z')
+            /* skip past the "<META"*/
+            *buf += 5;
 
-        while (*buf != '\t' &&
-               *buf != '\r' &&
-               *buf != '\n' &&
-               *buf != '\f' &&
-               *buf != ' ')
-            buf++;
+            /* and skip non-white-space */
+            while (*buf != '\t' &&
+                   *buf != '\r' &&
+                   *buf != '\n' &&
+                   *buf != '\f' &&
+                   *buf != ' ' &&
+                   *buf != '/')
+                *buf++;
+
+            /* set attribute list to
+             * empty */
+            attrs = NULL;
+
+            /* set "got pragma" and
+             *"mode" to NULL */
+            got_prgma = NULL;
+            mode = NULL;
+
+            /* set the char-set to be
+             * recognised, but NULL */
+            chrst = NULL;
+            unrecog_chrst = 0;
+
+attrbs:
+            /* get the first attribute,
+             * but if none was found,
+             * jump to processing */
+            if (val = (!(get_attr(&buf,
+                                  &attr_nme))))
+                goto prcssng;
+
+            /* get find the attribute in the
+          attributes map*/
+            if (!(attr_node =
+                      bd_map_find(attrs,
+                                  attr_nme,
+                                  (bd_map_cmp_fn)
+                                      strcmp)) {
+
+                /* og if not prsent, add it */
+                ins_node = bd_alloc(allocs,
+                                    sizeof(struct),
+                                    logger)
+                if (!(ins_node))
+                    return NULL;
+                if (!(vsbd_map_insert(&attrs,
+                                      ins_node,
+                                      attr_nme,
+                                      bd_map_cmp_fn)
+                                          strcmp,
+                                      attr_node->value))
+                    return NULL;
+
+                goto attrbs;
+            }
+
+            if (!(strcmp(attr_nme,
+                         "http-equiv")))
+                if (!(strcmp(attr_nme,
+                             "content-type")))
+                    got_prgma = 0;
+
+            else if (!(strcmp(attr_nme,
+                              "charset")))
+
+                 if (!(ret)) {
+                     ret = (char *)
+                            attr_node->value;
+                     mode = "charset";
+                 }
+
+             } else if (!(strcmp(attr_nme,
+                                 "content"))) {
+ 
+                 ret = enc_frm_ctype((char *)
+                                     attr_node->value);
+
+                 goto attrbs;
+
+                 if (!(mode))
+                     break;
+
+                 if (!(strcmp(mode,
+                              "pragma") &&
+                                (!(got_prgma))))
+                     break;
+
+                 if  (!(strcmp(ret,
+                               "UTF-16BE")) ||
+                      !(strcmp(ret,
+                               "UTF-16LE")))
+                     ret = "UTF-8";
+
+                 if (!(iconv_open(ret, 
+                                  "UTF-8") != EINVAL)
+                     break;
+
+                 return mke_enc_cnfdnce(ret,
+                                        cnfdnce_tntve,
+                                        allocs,
+                                        logger); 
+             }
+
+         } else if ((*buf > 'a' && *buf < 'z') ||
+                    *buf > 'A' && *buf < 'Z')
+
+            while (*buf != '\t' &&
+                   *buf != '\r' &&
+                   *buf != '\n' &&
+                   *buf != '\f' &&
+                   *buf != ' ')
+                *buf++;
+            *buf++;
 
         else if (buf[1] == '!' ||
                  buf[1] == '/' ||
                  buf[1] == '?')
             while (*buf != '>')
-	            *buf++;
-
-
+                *buf++;
     }
 }
 
