@@ -2,16 +2,17 @@
 *
 * BikeDemo - exercise bike demonstration scenery.
 *
-* html.h - data types and function prototypes
-* related to the Hyper-Text Markup Language
-* (HTML), a legacy, SGML-like format popular
-* on the web prior to the advent of XML.
+* "html.h" - data types and function proto-
+* types related to the Hyper-Text Markup
+* Language (HTML), a legacy, SGML-like for-
+* mat popular on the web prior to the advent
+* of XML.
 *
-* This implementation parses an input HTML docu-
-* ment, using the parsing rules detailed at
-* "http://www.w3.org/TR/html5/parsing.html",
-* and returns an XML document having equivalent
-content tp the that document
+* This implementation parses an input HTML
+* document, using the parsing rules detailed
+* at "http://www.w3.org/TR/html51", and
+* returns an XML document having equivalent
+* content to the that document
 * 
 * Copyright (C) 2007-2014, Russell Potter
 * All rights reserved
@@ -29,20 +30,59 @@ extern "C" {
 #include <bikedemo/log.h>
 #include <bikedemo/xml.h>
 
+/* "bdhm_cnfdnces" - enumeration -
+ * the possible "confidences" of
+ * a "sniffed" HTML encoding: na-
+ * mely, either "tentative", "ce-
+ * rtain" or "irrelevant" */
+enum bdhm_cnfdnces {
+
+    bdhm_cnfdnce_tnttve,
+    bdhm_cnfdnce_crtn,
+    bdhm_cnfdnce_irrlvnt
+}
+
+/* "bdhm_ins_modes" enumeration -
+ * the possible "insertion modes"
+ * (as defined - and documented -
+ * in the HTML spec) of an HTML
+ * parser */
+enum bdhm_ins_modes {
+
+    bdhm_ins_mode_bfre_html,
+    bdhm_ins_mode_bfre_hd,
+    bdhm_ins_mode_in_hd,
+    bdhm_ins_mode_in_hd_noscrpt,
+    bdhm_ins_mode_aftr_hd,
+    bdhm_ins_mode_in_bdy,
+    bdhm_ins_mode_txt,
+    bdhm_ins_mode_in_tble,
+    bdhm_ins_mode_in_tble_txt,
+    bdhm_ins_mode_in_cptn,
+    bdhm_ins_mode_in_rw,
+    bdhm_ins_mode_in_cll,
+    bdhm_ins_mode_in_slct,
+    bdhm_ins_mode_in_slct_in_tble,
+    bdhm_ins_mode_in_frgn_cnt,
+    bdhm_ins_mode_aftr_bdy,
+    bdhm_ins_mode_in_frgn_cnt,
+    bdhm_ins_mode_in_frmset,
+    bdhm_ins_mode_aftr_frmset
+}
+
 /* "bdhm_toks" enumeration - the
- * possible tyoes of tokens ret-
- * urned by the HTML document par-
- * ser's lexical analyser, which
- * may incude open or close ele-
- * ment tags, white-space, CDATA
- * sections,  comments and any
- * of various punctuation marks */
+ * possible types of tokens for
+ * an HTML parser, as defined by
+ * the spec., namely: DOC-TYPE,
+ * start tag, end tag, comment
+ * and character*/
 enum bdhm_toks {
 
-    bdhm_tok_nme,  /* XML name */
-    bdhm_tok_ws,   /* white-space */
-    bdhm_tok_cmmt, /* comment */
-    bdhm_tok_cdta  /* CDATA section */
+    bdhm_tok_doc_type,  /* DOC-TYPE */
+    bdhm_tok_strt_tg,   /* start tag */
+    bdhm_tok_end_tg,    /* end tag */
+    bdhm_tok_cmt,       /* comment */
+    bdhm_tok_chr        /* character */
 };
 
 /* "bdhm_enc_cnfdncs" enumeration - the
@@ -58,26 +98,159 @@ enum bdhm_enc_cnfdncs {
     bdhm_enc_cnfdnce_irrlvnt /* tentative  */
 }
 
+/* "bdhm_tok" an JHTML paser lexical
+ * analyser, vcapabn;ke of analysing
+ * an returning smty og og the tokens
+ * appearing in an HTML-formatted
+ * byte stream, consisting of a
+ * generic roknen, the token type,
+ * the virrently scannws DOCTYPE, */
+
+/* "bdhm_elems" structure - the
+ * "element pointers" (as defined in
+ * the spec.) of sn HTNKML parser
+ * state, consisrting of s "form"
+ * element and a "head" element */
+struct bdhm_elems {
+
+    struct bdxl_node *hd,  /* "head" and */
+                     *frm; /* "form" ele-
+                            * ments */
+};
+
+/* "bdhm_flgs" structure = the "pars-
+ * ing state flags" of an HTML paser's
+ * state, condsisrting of the "scri-
+ * pting abnd deframeset-ok" dlagds */
+struct bdhm_flgs {
+
+    int scrptng,  /* "scripting" and */
+        frmst_ok; /* frameset-ok" flags */
+};
+
+/* "bdhm_opn_node" structure - a single
+ * inode in the stack of open elements
+ * in an HYTML parser's state, consist-
+ * ing of the open element for the node
+ * and a reference to the next node in
+ * the stack */
+struct bdhm_opn_node {
+
+    struct bdxl_elem *elem;    /* the node's
+                                * element */
+    struct bdhm_opn_node *nxt; /* next ele-
+                                * ment in
+                                * stack */
+};
+
+/* "bdhm_fmt_node" structure - a single
+ * inode in the stack of list of "active
+ * formatting elements" in an HTML par-
+ * ser's state, consisting of the form-
+ * atting element, aits associated tok-
+ * en, an indication as to whether the
+ * node is a "marker" (as defined in the
+ * spec.) and a reference to the next
+ * node in the stack */
+struct bdhm_fmt_node {
+
+    struct bdhm_tag *tag;      /* the node's
+                                * tag */
+    struct bdhm_tok *tok;      /* associated
+                                * token */
+    int mrkr;                  /* ewhether is
+                                * a marker */
+    struct bdhm_fmt_node *nxt; /* next ele-
+                                * ment in list */
+};
+
+/* "bdhm_rt" structure - the run-time
+ * environment of an HTML parser (equ-
+ * ivalent to the "parser state" defi-
+ * ned in the spec.), consisting of an
+ * "insertion mode", the stack of curr-
+ * ently open elements, a list of "act-
+ * ive formatting elements",, parsing
+ * state flags and "element pointers" */
+struct bdhm_rt {
+
+    enum bdhm_ins_modes ins_mode; /* insertion
+                                   * mode */
+    struct bdhm_opn_node *opns;   /* stack of
+                                   * open ele-
+                                   * ments */
+    struct bdhm_fmt_node *fmts;   /* list of
+                                   * active form-
+                                   * mating ele-
+                                   * ments */
+    struct bdhm_elems *elems;     /* "element
+                                   * pointers" */
+    struct bdhm_flgs *flgs;       /* parser
+                                   * state flags */
+};
+
+/* "bdhm_doctype" structure -
+ * an JHYYTML DOC-TYPE (as def-
+ * ined in the spec.), xconsi-
+ * sting of a name, public ID,
+ * system ID and (any of which
+ * nmauy be "missing", or
+ * NULL) and a "quirks mode"
+ * flag */
+ztruct bdhm_doctype {
+
+    struct bdut_str *nme, /* name, pub- */
+                    *pub, /* lic ID and */
+                    *sys; /* system ID */
+    int qrks_mde;         /* using "quirks
+                           * mode" */
+};
+
+/* "bdhm_tag" structure an HTML
+ * "tag", consisting of the
+ * tag name and name-space, an
+ * indication as to whether the
+ * tag is "self closing" (doe-
+ * sn't require an end tag) and
+ * a set of attributes */
+struct bdhm_tag {
+
+    struct bdut_str *nme,      /* tag name and */
+                     ns;       /* name-space  */
+    int slf_clse;              /* is self- 
+                                * closing */
+    struct bd_map_node *attrs; /* attributes */
+};
+
 /* "bdhm_tok" structure - the
  * HTML document parsing token,
  * consisting of a generic
  * token, the a current token
- * type, current code-point
- * and a buffer into which
- * input is collected  */
+ * type, snd a union of the 
+ * currently scanned DOC-TYPE,
+ * the current character, a
+ * buffer into which input is
+ * collected as well as ano-
+ * ther temporary buffer and
+ * the currently scanned start
+ * and end tags */
 
 struct bdhm_tok {
 
     struct bdlx_tok tok;         /* generic
                                   * token */
-
-    enum bdhm_toks type;         /* type */
+    enum bdhm_toks type;         /* token type */
 
     union {
-        int cp;                  /* current
-                                  * code-point */
-        struct bdbf_buffer *buf; /* input
-                                  * buffer */
+        struct bdhm_doctype *doctype; /* scanned
+                                       * DOC-TYPE */
+        struct bdhm_tag *strt,        /* start and */
+                        *end;         /* end tags */
+        int chr;                      /* current
+                                       * character */
+        struct bdbf_buffer *buf,      /* input and */
+                           *tmp;      /* temp. buf-
+                                       * fers */
     } u;
 };
 
@@ -1641,7 +1814,7 @@ struct bdlg_obj *bdhm_add_div_elem_prps(
                        struct bd_allocs *,
                        struct bd_logger *);
 
-/* "bdhm_add_hdg_elem_prps" - returns a
+/* "bdhm_add_hdng_elem_prps" - returns a
  * language-abstracted object populated
  * with DOM properties of the HTML Head-
  * ing element given in the first param-
@@ -1649,7 +1822,7 @@ struct bdlg_obj *bdhm_add_div_elem_prps(
  * error logger given in the second and
  * third parameters, respectively. Ret-
  * urns NULL on error */
-struct bdlg_obj *bdhm_add_hdg_elem_prps(
+struct bdlg_obj *bdhm_add_hdng_elem_prps(
                        struct bdhm_hdg_elem *,
                        struct bd_allocs *,
                        struct bd_logger *);
