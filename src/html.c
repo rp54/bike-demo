@@ -2,7 +2,7 @@
 *
 * BikeDemo - exercise bike demonstration scenery.
 *
-* html.c - function implementations related to
+* "html.c" - function implementations related to
 * the Hyper-Text Markup Language (HTML), a legacy
 * SGML-like format commonly used prior to the
 * advent of XML.
@@ -24,11 +24,28 @@
 #include <bikedemo/html.h>
 #include <bikedemo/parser.h>
 
-/* "prsr" - the HTML document
- * parser */
+/* "prsr" - the HTML document parser */
 static struct bdpr_parser *prsr;
 
-/* "name_tok" - returns the index of the
+/* "xml_ns", "xmlns_ns" "html_ns", "svg_ns",
+ * "mthml_ns", "xlnk_ns"  -  the constants
+ * for namespace names of XML, XMLNS, HTML,
+ * SVG, MathML and,XLink, respectively */
+static char *xml_ns     =
+        "http://www.w3.org/XML/1998/namespace",
+            *xmlns_ns   =
+        "http://www.w3.org/2000/xmlns/",
+            *html_ns    =
+        "http://www.w3.org/1999/xhtml",
+            *svg_ns     =
+        "http://www.w3.org/2000/svg",
+            *mthml_ns   =
+        "http://www.w3.org/1998/Math/MathML",
+            *xlnk_ns    =
+        "http://www.w3.org/1999/xlink";
+
+  
+  /* "name_tok" - returns the index of the
  * messsage table entry describing the
  * HTML token "tok", enere "exact"  ind-
  * icates whether the description should
@@ -98,8 +115,53 @@ static int tok_type(struct bdlx_tok *tok,
     struct bdhm_tok *hm_tok  =
                 (struct bdhm_tok *) tok;
 
-    /* return "type" field */
+    /* and return "type" field */
     return hm_tok->type;
+}
+
+/* "start_buf" - lexical analyser trans-
+ * ition call-vback to add the orst char-
+ * acter, given in "cp", to "tok"'s buffer */
+static int start_buf(struct bdlx_tok *tok,
+                     int cp,
+                     void *opaque,
+                     struct bd_allocs *allocs,
+                     struct bd_logger *logger)
+{
+    /* co-erce token to correct type */
+    struct bdjs_bdhm_tok *hm_tok =
+              (struct bdhm_tok *) tok;
+
+    /* iinitialise "tok"'s buffer */
+    if ((!(bdbf_init(allocs,
+                     logger)))
+        return 0;
+
+    /* add "cp" to it */
+    return bdbf_add(hm_tok->u.buf,
+                    allocs,
+                    logger,
+                    (void *) cp);
+}
+
+/* "add_to_buf" - lexical analyser trans-
+ * ition call-back to add the character,
+ * given in "cp", to "tok"'s buffer */
+static int add_to_buf(struct bdlx_tok *tok,
+                      int cp,
+                      void *opaque,
+                      struct bd_allocs *allocs,
+                      struct bd_logger *logger)
+{
+    /* co-erce token to correct type */
+    struct bdjs_bdhm_tok *hm_tok =
+              (struct bdhm_tok *) tok;
+
+    /* and add "cp" to "tok"'s buffer */
+    return bdbf_add(hm_tok->u.buf,
+                    allocs,
+                    logger,
+                    (void *) cp);
 }
 
 /* "chr_in" = returns non-zero if
@@ -408,15 +470,22 @@ static struct enc_cnfdnce *mke_cnfdnce(
  * in "len", idusing the memory all-
  * ocator and error logger given in
  * "allocs" anfd "logger", respec-
- * tively */
+ * tively.  Implements the "extrac-
+ * ting an encoding from a content
+ * type"  algorithm documented in
+ & the spec. */
 static char *enc_frm_ctype(
                      char *s,
                      int len,
                     struct bd_allocs *allocs,
                     struct bd_logger *logger)
 {
-    int i;
-    struct bdbf_buffer *buf;
+    int i;                   /* iterator */
+    struct bdbf_buffer *buf; /* return value
+                              * accumulated
+                              * storage */
+    char *ret;               /* encoding
+                               to return  */
 
     if (!(buf = bdbf_init(allocs,
                           logger,
@@ -557,10 +626,13 @@ loop:
 
         /* return a "flattened"
          * version of the buffer */
-        return (char *) bdbf_flttn(buf,
-                                   allocs,
-                                   logger); 
-    }
+        ret = (char *) bdbf_flttn(buf,
+                                  allocs,
+                                  logger);
+
+        /* properly NULL-terminate the
+         * returned string */
+        ret[bdbf_len(buf)] = 0;
 }
 
 /* "sniff_enc" - "sniffs" (to use the
@@ -584,17 +656,18 @@ static struct bdhm_cnfdnce *sniff_enc(
          *chrst,attr_nme;            /* mode, char-set */
                                      /* and ist of
                                       * attribute */
-    struct bd_map_node *encs = NULL; /* names */
-                           ,         /* list of encodings, */
-                       *attrs,       /* attribute */
-                       *attr_node;   /* list and
-                                      * attribute
-                                    * node */ 
-int unrecog_chrst,                 /* char-set is
-                                    * unrecognised */
-    got_prgma;                     /* whether we
-                                    * have a
-                                    * "pragma" */
+     *encs = NULL;                   /* names */
+                                     /* attribute */
+    struct bd_map_node *attrs,       /* list and */
+                       *attr_node;   /* attribute
+                                      * node */
+int unrecog,                         /* returned 
+                                      * char-set is
+                                      * unrecogn-
+                                      * ised */
+    got_prgma;                       /* whether we
+                                      * have seen
+                                      * a pragma */
 
 
     /* if either the transport layer
@@ -764,7 +837,7 @@ attrbs:
                                "UTF-16LE")))
                      ret = "UTF-8";
 
-                 if (!(iconv_open(ret, 
+                 if (!(iconv_open(ret,
                                   "UTF-8") != EINVAL)
                      break;
 
@@ -823,11 +896,254 @@ attrbs:
 
     /* add basic HTML definitions, as
      * stated in the HTML parsing rules */
-    return bdlx_add_def(prsr->lex,
+    if (!(bdlx_add_def(prsr->lex,
+                       allocs,
+                       logger,
+                       "nme_chr",
+                       "[a-zA-Z1-9]")))
+        return 0;
+
+    /* a block of sequentially increasing
+     * allocated lexical states, between
+     * which the analyser will transition,
+     * allocated from the analyser's pool
+     * of available states.
+	 *
+	 * each of these states corresponds
+	 * to a similarly-named tokeniser
+	 * state defined in the spec. */
+    int chrrf_in_dta_state                = bdlx_new_state(prsr->lex),
+        chrrf_in_rcdta_state              = bdlx_new_state(prsr->lex),
+        rcdta_state                       = bdlx_new_state(prsr->lex),
+        rwtxt_state                       = bdlx_new_state(prsr->lex),
+        scrpt_dta_state                   = bdlx_new_state(prsr->lex),
+        plntxt_state                      = bdlx_new_state(prsr->lex),
+        tg_opn_state                      = bdlx_new_state(prsr->lex),
+        end_tg_opn_state                  = bdlx_new_state(prsr->lex),
+        rcdta_lt_state                    = bdlx_new_state(prsr->lex),
+        rcdta_end_tg_opn_state            = bdlx_new_state(prsr->lex),
+        rcdta_end_tg_nme_state            = bdlx_new_state(prsr->lex),
+        rwtxt_lt_state                    = bdlx_new_state(prsr->lex),
+        rwtxt_end_tg_opn_state            = bdlx_new_state(prsr->lex),
+        rwtxt_end_tg_nme_state            = bdlx_new_state(prsr->lex),
+        scrpt_dta_lt                      = bdlx_new_state(prsr->lex),
+        scrpt_dta_end_tg_opn_state        = bdlx_new_state(prsr->lex),
+        scrpt_dta_esc_strt_state          = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_state              = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_dsh_state          = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_lt_state           = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_end_tg_opn_state   = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_end_tg_nme_state   = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_esc_strt_state     = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_state         = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_dsh_state     = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_dsh_dsh_state = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_lt_state      = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_esc_end_state      = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_esc_end_state      = bdlx_new_state(prsr->lex),
+        bfre_attr_nme_state               = bdlx_new_state(prsr->lex),
+        attr_nme_state                    = bdlx_new_state(prsr->lex),
+        aftr_attr_nme_state               = bdlx_new_state(prsr->lex),
+        bfre_attr_val_state               = bdlx_new_state(prsr->lex),
+        attr_val_dq_state                 = bdlx_new_state(prsr->lex),
+        attr_val_sq_state                 = bdlx_new_state(prsr->lex),
+        attr_val_unq_state                = bdlx_new_state(prsr->lex),
+        chr_rf_in_attr_val_state          = bdlx_new_state(prsr->lex),
+        aftr_attr_val_unq_state           = bdlx_new_state(prsr->lex),
+        slf_clsng_strt_tg_state           = bdlx_new_state(prsr->lex),
+        bgs_cmt_state                     = bdlx_new_state(prsr->lex),
+        mrkup_dcl_opn_state               = bdlx_new_state(prsr->lex),
+        cmt_strt_state                    = bdlx_new_state(prsr->lex),
+        cmt_strt_dsh_state                = bdlx_new_state(prsr->lex),
+        cmt_state                         = bdlx_new_state(prsr->lex),
+        cmt_end_state                     = bdlx_new_state(prsr->lex),
+        cmt_end_dsh_state                 = bdlx_new_state(prsr->lex),
+        cmt_end_bng_state                 = bdlx_new_state(prsr->lex),
+        doctype_state                     = bdlx_new_state(prsr->lex),
+        bfre_doctype_state                = bdlx_new_state(prsr->lex),
+        doctype_nme_state                 = bdlx_new_state(prsr->lex),
+        aftr_doctype_nme_state            = bdlx_new_state(prsr->lex),
+        aftr_doctype_pub_kwd_state        = bdlx_new_state(prsr->lex),
+        doctype_pub_id_dq_state           = bdlx_new_state(prsr->lex),
+        doctype_pub_id_sq_state           = bdlx_new_state(prsr->lex),
+        aftr_doctype_pub_id_state         = bdlx_new_state(prsr->lex),
+        btwn_doctype_pubsys_ids_state     = bdlx_new_state(prsr->lex),
+        aftr_doctype_sys_kwd_state        = bdlx_new_state(prsr->lex),
+        bfre_doctype_sys_id_state         = bdlx_new_state(prsr->lex),
+        doctype_sys_id_dq_state           = bdlx_new_state(prsr->lex),
+        doctype_sys_id_sq_state           = bdlx_new_state(prsr->lex),
+        aftr_doctype_sys_id_state         = bdlx_new_state(prsr->lex),
+        bgs_doctype_state                 = bdlx_new_state(prsr->lex),
+        cdta_sctn_state                   = bdlx_new_state(prsr->lex);
+
+    if (!(bdlx_add_rule(js->lex,
                         allocs,
                         logger,
-                        "nme_chr",
-                        "[a-zA-Z1-9]");
+                        "&",
+                        bdlx_start_state,
+                        chrrf_in_dta_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "<",
+                        bdlx_start_state,
+                        tg_opn_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "&",
+                        chrrf_in_dta_state,
+                        chrrf_in_rcdta_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "<",
+                        chrrf_in_dta_state,
+                        rcdta_lt_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        NULL,
+                        chrrf_in_rcdta_state,
+                        bdlx_start_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "<",
+                        rwtxt_state,
+                        rwtxt_lt_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "<",
+                        scrpt_state,
+                        scrpt_lt_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "!",
+                        tg_opn_state,
+                        mrkup_dcl_opn_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "/",
+                        tg_opn_state,
+                        end_tg_opn_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "[A-Z]",
+                        tg_opn_state,
+                        tg_nme_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "[a-z]",
+                        tg_opn_state,
+                        tg_nme_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "\\?",
+                        tg_opn_state,
+                        bgs_cmt_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "[A-Z]",
+                        end_tg_opn_state,
+                        tg_nme_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
+    if (!(bdlx_add_rule(js->lex,
+                        allocs,
+                        logger,
+                        "[a-z]",
+                        end_tg_opn_state,
+                        tg_nme_state,
+                        NULL,
+                        NULL,
+                        0,
+                        0)))
+        return 0;
+
 }
 
 /* "bdhm_parse" - parses the byte
@@ -846,7 +1162,7 @@ struct bdxl_doc *bdhm_prse(
 {
     struct bdut_str *str = NULL; /* unicode 
                                   * version
-                     NULL;        * of "input" */
+                                  * of "input" */
     struct bdxl_doc *ret;        /* return value */
 
     /* NULL-terminate input */
@@ -861,19 +1177,12 @@ struct bdxl_doc *bdhm_prse(
     /* run the HTML parser on "input",
      * which should generate the docu-
      * ment in its opaque value */
-
-    ret = NULL;
-
-    bdpr_run(allocs,
-             logger,
-             prsr,
-             (void *)
-                 ret,
-             str);
-
-    /* .. and return the generated 
-     * document */
-    return ret;
+    return bdpr_run(allocs,
+                    logger,
+                    prsr,
+                    (void *)
+                        ret,
+                    str);
 }
 
 /* "set_doc_ttle" - implements the "docu-
