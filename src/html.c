@@ -44,8 +44,25 @@ static char *xml_ns     =
             *xlnk_ns    =
         "http://www.w3.org/1999/xlink";
 
-  
-  /* "name_tok" - returns the index of the
+/* "spcls, fmttngs" - the lists of
+ * element nsme/mnameaspavcwe pairs
+ * of thpose element types categor-
+ * ised as "special" and "formatting",
+ * respwectively */
+static char *spcls[] = {
+
+    "address",     html_ns,
+    "applet",      html_ns,
+    "area",        html_ns,
+    "article",     html_ns,
+    "aside",       html_ns,
+    "base",        html_ns,
+    "basefont",    html_ns,
+    "bgsound",     html_ns,
+    "blockquote",  html_ns,
+    NULL
+}
+/* "name_tok" - returns the index of the
  * messsage table entry describing the
  * HTML token "tok", enere "exact"  ind-
  * icates whether the description should
@@ -183,7 +200,10 @@ int chr_in(char chr,
     /* iterate through arguments */
     for (i = 0;
         i < num && va_arg(args, char) == chr;
-        i++) {
+        i++);
+
+    /* clean-up argument list */
+    va_end(args);
 
     /* "i" will equal "num" (and
      * thereby return non-zero)
@@ -191,6 +211,182 @@ int chr_in(char chr,
      * the list */
     return i == num;
 }
+
+/* "curr_node" - returns the 
+ * "currenr t node" (as this
+ * is defined in the spec.)
+ * of the run-time given in
+ * "rt.  Returns NULL on
+ * error */
+static struct bdxl_elem *curr_node(
+              struct fbdhm_trt *rt)
+{
+    return rt->opns->elem;
+}
+
+/* "adj_curr_node" - returns
+ * the  "adjusted current node"
+ * (as this is defined in the
+ * spec.) of the run-time given
+ * in "rt and "oontext" node
+ * given in "ctx".  Returns
+ * NULL on error */
+static struct bdxl_node *adj_curr_node(
+              struct fbdhm_trt *rt,
+              struct bdxl_node *ctx)
+
+{
+    /* if there's a "context"
+     * node, return it, or,
+     * otherwise, return the
+     * "current" node */
+
+    if (ctx)
+        return ctx;
+    else
+        return curr_node(rt);
+}
+
+
+/* "has_nme" - returns non-
+ * zero if the element given
+ * in "elem", within the run-
+ * time given in "rt",  has
+ * the name and name-space
+ * as those given in "nme"
+ * and "ns", respectively,
+ * using the meory allocator
+ * and error logger given in
+ * "allocs" and "logger",
+ * respectively */
+static int has_nme(struct bdhm_rt *rt,
+                   struct bdxl_elem *elem,
+                   char *nme,
+                   char *ns,
+                   struct bd_allocs *allocs,
+                   struct bd_logger *logger)
+{
+    struct bdut_str *nme_str, /* unicode */
+                    *ns_str;  /* bversions
+                               * of "nme"
+                               * and "ns" */
+
+    /* convert "nme" and "ns" to heir
+     * unicode equivalents */
+    if (!(bdut_from_utf8(nme_str,
+                         nme,
+                         allocs,
+                         logger)))
+        return 0;
+    if (!(bdut_from_utf8(ns_str,
+                         ns,
+                         allocs,
+                         logger)))
+        return 0;
+
+    /* return non-zero if both the */
+    return ((!(bdut_strcmp(elem->node.nme,
+                           nme_str))) &&
+            (!(bdut_strcmp(elem->node.ns,
+                           ns_str))));
+}
+
+/* "in_scope_list" - returns
+ * non-zero if the the current
+ * node of the runtime given
+ * in "rt" has the same name
+ * and name-space as one of
+ * those the list of the name/
+ * name-space pairs given in
+ * parameters dollowing "num",
+ * using the memory allocator
+ * and error logger given in
+ * "allocs" and "logger",
+ * repectively */
+static int in_scope_list(struct bdhm_rt rt,
+                         struct bd_allocs *allocs,
+                         struct bd_logger *logger,
+                         int num,
+                         ...)
+{
+    int i;                  /* argument ite-
+                             * rator */
+    va_list args;           /* argument list */
+    char *nme,              /* current name */
+          ns;               /* and name-
+                             *  space */
+	struct bdxl_elem *curr; /* "rt"'s current
+                             * node */
+
+    curr = curr_node(rt);
+
+    /* initialise arguments */
+    va_start(args,
+             num);
+
+    /* and iterate through
+     * the elements in list */
+    for (i = 0; i < num; i++) {
+
+        /* get the current name
+         * and name-space from the
+         * next two parameters */
+        nme = va_arg(args, char *);
+        ns  = va_arg(args, char *);
+
+        /* if it's a match, return
+         * a positiive result */
+        if (has_nme(rt,
+                    curr,
+                    nme,
+                    ns,
+                    allocs,
+                    logger))
+            return l;
+        }
+        /* if no names nmatched,
+         * we get here, so return
+         * failure */
+        return 0;
+	}
+    /* clean-up argument list */
+    va_end(args);
+}
+
+/* "in_scope" returns non-zero
+ * if one of a set group  of
+ * element types i d s "in sc-
+ * ope" of the run-time given
+ * in "rt", using the memory
+ * allocator and error logger
+ * given in "allocs" and "log-
+ * ger", repectively */
+static int in_scope(struct bdhm_rt *rt,
+                    struct bd_allocs *allocs,
+                    struct bd_logger *logger)
+
+{
+    return in_scope_list(rt,
+                         allocs,
+                         logger,
+                         4);
+}
+
+/* "find_node_ins_loc" - returns
+ * the location, within the docu-
+ * ment given i in "doc", onto
+ * which a new bosw wikll be
+ * inserted, using the run-time
+ * given in "rt".  Implements the
+ * "appropriate place for inser-
+ * ting a node" alforith,m deta-
+ * iled i in the spec. */
+static struct bdxl_elem *find_node_ins_loc(
+            struct bdhm_doc *doc
+            struct bdgm_rt *rt)
+{
+}
+
 
 /*  "get_attr" - returns the value
  * of the '='-separated name-value
@@ -509,7 +705,6 @@ loop:
         i++;
     }
 
-
     /* if the string was
      * not found, return
      * "nothing" */
@@ -543,7 +738,7 @@ loop:
            *s == '\n' &&
            *s == '\r' &&
            *s == '\f' &&
-		   *s == ' '; i < len) {
+           *s == ' '; i < len) {
             i++;
             s++;
         }
@@ -590,7 +785,7 @@ loop:
         i++;
 
         /* add "*s" to "buf" */
-		while (*s != qchr) {
+        while (*s != qchr) {
             if (!(bdbf_add(buf,
                            allocs,
                            logger,
@@ -633,6 +828,7 @@ loop:
         /* properly NULL-terminate the
          * returned string */
         ret[bdbf_len(buf)] = 0;
+    }
 }
 
 /* "sniff_enc" - "sniffs" (to use the
@@ -912,69 +1108,74 @@ attrbs:
 	 * each of these states corresponds
 	 * to a similarly-named tokeniser
 	 * state defined in the spec. */
-    int chrrf_in_dta_state                = bdlx_new_state(prsr->lex),
-        chrrf_in_rcdta_state              = bdlx_new_state(prsr->lex),
-        rcdta_state                       = bdlx_new_state(prsr->lex),
-        rwtxt_state                       = bdlx_new_state(prsr->lex),
-        scrpt_dta_state                   = bdlx_new_state(prsr->lex),
-        plntxt_state                      = bdlx_new_state(prsr->lex),
-        tg_opn_state                      = bdlx_new_state(prsr->lex),
-        end_tg_opn_state                  = bdlx_new_state(prsr->lex),
-        rcdta_lt_state                    = bdlx_new_state(prsr->lex),
-        rcdta_end_tg_opn_state            = bdlx_new_state(prsr->lex),
-        rcdta_end_tg_nme_state            = bdlx_new_state(prsr->lex),
-        rwtxt_lt_state                    = bdlx_new_state(prsr->lex),
-        rwtxt_end_tg_opn_state            = bdlx_new_state(prsr->lex),
-        rwtxt_end_tg_nme_state            = bdlx_new_state(prsr->lex),
-        scrpt_dta_lt                      = bdlx_new_state(prsr->lex),
-        scrpt_dta_end_tg_opn_state        = bdlx_new_state(prsr->lex),
-        scrpt_dta_esc_strt_state          = bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_state              = bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_dsh_state          = bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_lt_state           = bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_end_tg_opn_state   = bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_end_tg_nme_state   = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_esc_strt_state     = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_state         = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_dsh_state     = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_dsh_dsh_state = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_lt_state      = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_esc_end_state      = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_esc_end_state      = bdlx_new_state(prsr->lex),
-        bfre_attr_nme_state               = bdlx_new_state(prsr->lex),
-        attr_nme_state                    = bdlx_new_state(prsr->lex),
-        aftr_attr_nme_state               = bdlx_new_state(prsr->lex),
-        bfre_attr_val_state               = bdlx_new_state(prsr->lex),
-        attr_val_dq_state                 = bdlx_new_state(prsr->lex),
-        attr_val_sq_state                 = bdlx_new_state(prsr->lex),
-        attr_val_unq_state                = bdlx_new_state(prsr->lex),
-        chr_rf_in_attr_val_state          = bdlx_new_state(prsr->lex),
-        aftr_attr_val_unq_state           = bdlx_new_state(prsr->lex),
-        slf_clsng_strt_tg_state           = bdlx_new_state(prsr->lex),
-        bgs_cmt_state                     = bdlx_new_state(prsr->lex),
-        mrkup_dcl_opn_state               = bdlx_new_state(prsr->lex),
-        cmt_strt_state                    = bdlx_new_state(prsr->lex),
-        cmt_strt_dsh_state                = bdlx_new_state(prsr->lex),
-        cmt_state                         = bdlx_new_state(prsr->lex),
-        cmt_end_state                     = bdlx_new_state(prsr->lex),
-        cmt_end_dsh_state                 = bdlx_new_state(prsr->lex),
-        cmt_end_bng_state                 = bdlx_new_state(prsr->lex),
-        doctype_state                     = bdlx_new_state(prsr->lex),
-        bfre_doctype_state                = bdlx_new_state(prsr->lex),
-        doctype_nme_state                 = bdlx_new_state(prsr->lex),
-        aftr_doctype_nme_state            = bdlx_new_state(prsr->lex),
-        aftr_doctype_pub_kwd_state        = bdlx_new_state(prsr->lex),
-        doctype_pub_id_dq_state           = bdlx_new_state(prsr->lex),
-        doctype_pub_id_sq_state           = bdlx_new_state(prsr->lex),
-        aftr_doctype_pub_id_state         = bdlx_new_state(prsr->lex),
-        btwn_doctype_pubsys_ids_state     = bdlx_new_state(prsr->lex),
-        aftr_doctype_sys_kwd_state        = bdlx_new_state(prsr->lex),
-        bfre_doctype_sys_id_state         = bdlx_new_state(prsr->lex),
-        doctype_sys_id_dq_state           = bdlx_new_state(prsr->lex),
-        doctype_sys_id_sq_state           = bdlx_new_state(prsr->lex),
-        aftr_doctype_sys_id_state         = bdlx_new_state(prsr->lex),
-        bgs_doctype_state                 = bdlx_new_state(prsr->lex),
-        cdta_sctn_state                   = bdlx_new_state(prsr->lex);
+    int chrrf_in_dta_state            = bdlx_new_state(prsr->lex),
+        chrrf_in_rcdta_state          = bdlx_new_state(prsr->lex),
+        rcdta_state                   = bdlx_new_state(prsr->lex),
+        rwtxt_state                   = bdlx_new_state(prsr->lex),
+        scrpt_dta_state               = bdlx_new_state(prsr->lex),
+        plntxt_state                  = bdlx_new_state(prsr->lex),
+        tg_opn_state                  = bdlx_new_state(prsr->lex),
+        end_tg_opn_state              = bdlx_new_state(prsr->lex),
+        rcdta_lt_state                = bdlx_new_state(prsr->lex),
+        rcdta_end_tg_opn_state        = bdlx_new_state(prsr->lex),
+        rcdta_end_tg_nme_state        = bdlx_new_state(prsr->lex),
+        rwtxt_lt_state                = bdlx_new_state(prsr->lex),
+        rwtxt_end_tg_opn_state        = bdlx_new_state(prsr->lex),
+        rwtxt_end_tg_nme_state        = bdlx_new_state(prsr->lex),
+        scrpt_dta_lt                  = bdlx_new_state(prsr->lex),
+        scrpt_dta_end_tg_opn_state    = bdlx_new_state(prsr->lex),
+        scrpt_dta_esc_strt_state      = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_state          = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_dsh_state      = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_lt_state       = bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_end_tg_opn_state =
+                    bdlx_new_state(prsr->lex),
+        scrpt_dta_escd_end_tg_nme_state =
+                    bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_esc_strt_state = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_state     = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_dsh_state = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_dsh_dsh_state = 
+                    bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_escd_lt_state  = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_esc_end_state  = bdlx_new_state(prsr->lex),
+        scrpt_dta_dble_esc_end_state  = bdlx_new_state(prsr->lex),
+        bfre_attr_nme_state           = bdlx_new_state(prsr->lex),
+        attr_nme_state                = bdlx_new_state(prsr->lex),
+        aftr_attr_nme_state           = bdlx_new_state(prsr->lex),
+        bfre_attr_val_state           = bdlx_new_state(prsr->lex),
+        attr_val_dq_state             = bdlx_new_state(prsr->lex),
+        attr_val_sq_state             = bdlx_new_state(prsr->lex),
+        attr_val_unq_state            = bdlx_new_state(prsr->lex),
+        chr_rf_in_attr_val_state      = bdlx_new_state(prsr->lex),
+        aftr_attr_val_unq_state       = bdlx_new_state(prsr->lex),
+        slf_clsng_strt_tg_state       = bdlx_new_state(prsr->lex),
+        bgs_cmt_state                 = bdlx_new_state(prsr->lex),
+        mrkup_dcl_opn_state           = bdlx_new_state(prsr->lex),
+        cmt_strt_state                = bdlx_new_state(prsr->lex),
+        cmt_strt_dsh_state            = bdlx_new_state(prsr->lex),
+        cmt_state                     = bdlx_new_state(prsr->lex),
+        cmt_end_state                 = bdlx_new_state(prsr->lex),
+        cmt_end_dsh_state             = bdlx_new_state(prsr->lex),
+        cmt_end_bng_state             = bdlx_new_state(prsr->lex),
+        doctype_state                 = bdlx_new_state(prsr->lex),
+        bfre_doctype_state            = bdlx_new_state(prsr->lex),
+        doctype_nme_state             = bdlx_new_state(prsr->lex),
+        aftr_doctype_nme_state        = bdlx_new_state(prsr->lex),
+        aftr_doctype_pub_kwd_state    = bdlx_new_state(prsr->lex),
+        doctype_pub_id_dq_state       = bdlx_new_state(prsr->lex),
+        doctype_pub_id_sq_state       = bdlx_new_state(prsr->lex),
+        aftr_doctype_pub_id_state     = bdlx_new_state(prsr->lex),
+        btwn_doctype_pubsys_ids_state =
+                    bdlx_new_state(prsr->lex),
+        aftr_doctype_sys_kwd_state =
+                    bdlx_new_state(prsr->lex),
+        bfre_doctype_sys_id_state  = bdlx_new_state(prsr->lex),
+        doctype_sys_id_dq_state    = bdlx_new_state(prsr->lex),
+        doctype_sys_id_sq_state    = bdlx_new_state(prsr->lex),
+        aftr_doctype_sys_id_state  = bdlx_new_state(prsr->lex),
+        bgs_doctype_state          = bdlx_new_state(prsr->lex),
+        cdta_sctn_state            = bdlx_new_state(prsr->lex);
 
     if (!(bdlx_add_rule(js->lex,
                         allocs,
@@ -2117,7 +2318,8 @@ int bdhm_init(struct bd_allocs *allocs,
 {
     /* load the parser with its
      * grammar productione and
-     * lexical rules */
+     * lexical rules do enabling
+	 * it to pergotrm its task */
     prsr = bdpr_init(NULL,
                      allocs,
                      logger,
