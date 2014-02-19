@@ -64,15 +64,31 @@ struct bdpr_in {
  * respectively.  Returns zero on error, non-zero
  * otherwise */
 typedef int (* bdpr_init_fn)(struct bdpr_parser *,
-		                     struct bd_allocs *,
-		                     struct bd_logger *);
+                             struct bd_allocs *,
+                             struct bd_logger *);
 
-/* "ihpr_parser" structure - represents a combination of the
- * grammar table, lexical analyser and the lexical token used
- * by a language, together with the grammar productions and
- * resulting parser table built from the grammar productions
- * and the parser's initialisation function and the oarser's
- * build-time info. */
+/* "bdpr_dsptch_fn" typedef - proto-type of the
+ * function  to receive a lexical token from a
+ * parser's lexical analyser
+ *
+ * the first parameter is the received lexical
+ * eoken, the second is the relevant parser,
+ * and the third and fourth is the the memory
+ * allocator and error logger to
+ * use.  Returns zero on error, non-zero oth-
+ * erwise */
+typedef int (* bdpr_dsptch_fn)(struct bdlx_tok *,
+                               struct bdpr_parser *,
+                               struct bd_allocs *,
+                               struct bd_logger *);
+
+/* "ihpr_parser" structure - represents a combin-
+ * ation of the grammar table, lexical analyser
+ * and the lexical token used by a language, tog-
+ * ether with the grammar productions and resul-
+ * ting parser table built from the grammar pro-
+ * ductions, the parser's initialisation funct-
+ * ion and the parser's run-time info. */
 struct bdpr_parser {
 
     struct bdgm_grmr *gmr;    /* language's grammar */
@@ -86,7 +102,7 @@ struct bdpr_parser {
 
     bdpr_init_fn init;        /* initialisation function */
 
-    void *rt;                 /* run-time data pointer*/
+    void *rt;                 /* run-time data pointer */
 };
 
 /** Function proto-types ***/
@@ -96,7 +112,7 @@ struct bdpr_parser {
  * in the first and second and third parameters, re-
  * spectively, a parser whose grammar productions
  * and lexical rules have been are inititially set
- * from the base arser given on the first parameter,
+ * from the base parser given on the first parameter,
  * and extended and re-defined (sub-classed) via a
  * call to the initialisation function given in the
  * fourth parameter.  Returns NULL on an error, the
@@ -120,18 +136,29 @@ int bdpr_insert(struct bd_allocs *,
                 int);
 
 
-/* "bdpr_run" - run the grammar table of the
- * parser given in the third parameter on the
- * code-point string given in fifth parameter,
- * after having been processed by that parse-
- * r's lexical analyser, using the memory al-
- * locator and error logger given in the fir-
- * st and second parameters, respectively,
- * and opaque value in the fourth parameter */
+/* "bdpr_run" - runs, if the dispatch
+ * call-back given in the fifth para-
+ * meter is NULL, the grammar table of
+ * the parser given in the third para-
+ * meter, caused by input to the ta-
+ * ble of the list of lexical tokens
+ * resulting from lexical analysis, by
+ * the parser's lexical analyser, of
+ * the string given in the sixth para-
+ * meter, using the memory allocator,
+ * error logger and opaque pointer
+ * given in the first, second and
+ * fourth paarameters, respectively.
+ * If the fifth parameter is, however,
+ * non-NULL, the call-back is, instead,
+ * called on each of those resulting
+ * tokens.  Returns zero on an error,
+ * non-zero otherwise  */
 int bdpr_run(struct bd_allocs *,
              struct bd_logger *,
              struct bdpr_parser *,
              void *,
+             bdpr_dsptch_fn,
              struct bdut_str *);
 
 /* "bdpr_cleanup" - reclaims the resources used
