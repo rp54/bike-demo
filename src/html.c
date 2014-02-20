@@ -260,8 +260,8 @@ static int tok_name(struct bdlx_tok *tok,
  * ively.  Returns zero on an error, non-
  * zero otherwise */
 void tok_init(struct bdlx_tok *tok,
-               struct bd_allocs *allocs,
-               struct bd_logger *logger)
+              struct bd_allocs *allocs,
+              struct bd_logger *logger)
 {
     /* co-erce token to its actual type */
     struct bdhm_tok *hm_tok =
@@ -269,13 +269,11 @@ void tok_init(struct bdlx_tok *tok,
 
     /* and initialise buffer and other
      * fields */
-    hm_tok->u.buf = bdbf_init(allocs,
-                              logger,
-                              sizeof(int));
     hm_tok->u.num = 0;
     hm_tok->u.str.len = 0;
-
-    return hm_tok->u.buf != NULL;
+    return hm_tok->u.buf = bdbf_init(allocs,
+                                     logger,
+                                     sizeof(int));
 }
 
 /* "reset_tok" - reset the fields of the
@@ -3252,17 +3250,82 @@ struct bdlg_obj *bdhm_add_html_elem_prps(
 int bdhm_init(struct bd_allocs *allocs,
               struct bd_logger *logger)
 {
-    /* load the parser with its
-     * grammar productione and
-     * lexical rules do enabling
-	 * it to pergotrm its task */
+    /* load the parser with the
+     * lexical rules and idispatch
+     * call-back to enable it to
+     * perform its task */
     prsr = bdpr_init(NULL,
                      allocs,
                      logger,
+                     bdgm_sym_empty,
                      (bdpr_init_fn)
                          ld_prsr);
 
     return prsr != NULL;
+}
+
+/* "dsptch_initl" - "dispat-
+ * ches", in a manner descri-
+ * bed in the spec., the le-
+ * xical token given in tok",
+ * whilst parsing in the "in-
+ * itial" insertion mode, us-
+ * ing the parser, parser ou-
+ * tput, memory allocator
+ * and error logger given in
+ * "prsr", "out", "allocs"
+ * and "logger", respectively.
+ * Returns zero on error, non-
+ * zero otherwise */
+static int dsptch_initl(struct bdlx_tok *tok,
+                        struct bdpr_parser *prsr,
+                        void *out,
+                        struct bd_allocs *allocs,
+                        struct bd_logger *logger)
+{
+    struct bdhm_tok *hm_tok =    /* HTML version */
+        (struct bdhm_tok *) tok; /*  of token */ 
+    struct bdhm_rt *rt =         /* parser's */
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
+    else
+        node = (struct bdxl_doc *) out;
+
+    switch (hm_tok->type) { /* switch on "tok"'s
+                             * type ... */
+
+        case bdhm_tok_doc_type:
+            break;
+
+        case bdhm_tok_strt_tg:
+            break;
+
+        case bdhm_tok_end_tg:
+            break;
+
+        case bdhm_tok_cmt:  
+            break;
+
+        case bdhm_tok_attrs:
+            break;
+
+        case bdhm_tok_cdta:
+            break;
+
+        case bdhm_tok_chr:
+
+            switch (tok->u.chr) {
+                case 'a':
+            };
+            break;
+	};
 }
 
 /* "dsptch_frgn_cnt" - "disp-
@@ -3272,22 +3335,31 @@ int bdhm_init(struct bd_allocs *allocs,
  * tok", whilst parsing in
  * the "foreign content" in-
  * sertion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser, parser output,
+ * memory allocator and er-
+ * ror logger given in "pr-
+ * sr", "out", "allocs" and
+ * "logger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_frgn_cnt(struct bdlx_tok *tok,
                            struct bdpr_parser *prsr,
+                           void *out,
                            struct bd_allocs *allocs,
                            struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s
                              * type ... */
@@ -3325,23 +3397,32 @@ static int dsptch_frgn_cnt(struct bdlx_tok *tok,
  * HTML generic lexical tok-
  * en given in tok", whilst
  * parsing in the "before HT-
- * ML" insertion mode, using
- * the parser, memory alloc-
- * ator and error logger gi-
- * ven in "prsr", "allocs"
+ * ML" insertion mode, us-
+ * ing the parser, parser ou-
+ * tput, memory allocator
+ * and error logger given in
+ * "prsr", "out", "allocs"
  * and "logger", respectiv-
  * ely.  Returns zero on er-
  * ror, non-zero otherwise */
 static int dsptch_bfre_html(struct bdlx_tok *tok,
                             struct bdpr_parser *prsr,
+                            void *out,
                             struct bd_allocs *allocs,
                             struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s
                              * type ... */
@@ -3379,23 +3460,32 @@ static int dsptch_bfre_html(struct bdlx_tok *tok,
  * lexical token given in
  * "tok", whilst parsing in
  * the "before head" insert-
- * ionmode, using the parser,
- * memory allocator and er-
- * ror logger given in "prsr",
- * "allocs" and "logger", re-
- * spectively.  Returns zero
- * on error, non-zero other-
- * wise */
+ * ion mode, using the par-
+ * ser, parser output, mem-
+ * ory allocator and error
+ * logger given in "prsr",
+ * "out", "allocs" and "lo-
+ * gger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_bfre_hd(struct bdlx_tok *tok,
                           struct bdpr_parser *prsr,
+                          void *out,
                           struct bd_allocs *allocs,
                           struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s
                              * type ... */
@@ -3434,22 +3524,31 @@ static int dsptch_bfre_hd(struct bdlx_tok *tok,
  * "tok", whilst parsing in
  * the "in-head" insertion
  * mode, using the parser,
- * memory allocator and er-
- * ror logger given in "pr-
- * sr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser output, memory
+ * allocator and error log-
+ * ger given in "prsr", "out",
+ * "allocs" and "logger",
+ * respectively.  Returns
+ * zero on error, non-zero
+ * otherwise */
 static int dsptch_in_hd(struct bdlx_tok *tok,
                         struct bdpr_parser *prsr,
+                        void *out,
                         struct bd_allocs *allocs,
                         struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3487,23 +3586,31 @@ static int dsptch_in_hd(struct bdlx_tok *tok,
  * ven in "tok" whilst pars-
  * ing in the "in-head, no-
  * script" insertion mode,
- * using the parser, memory
- * allocator and error log-
- * ger given in "prsr", "al-
- * locs" and "logger", resp-
- * ectively.  Returns zero
- * on error, non-zero other-
- * wise */
+ * using the parser, parser
+ * output, memory allocator
+ * and error logger given in
+ * "prsr", "out", "allocs"
+ * and "logger", respectively.
+ * Returns zero on error, non-
+ * zero otherwise */
 static int dsptch_in_hd_noscrpt(struct bdlx_tok *tok,
                                 struct bdpr_parser *prsr,
+                                void *out,
                                 struct bd_allocs *allocs,
                                 struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3540,23 +3647,32 @@ static int dsptch_in_hd_noscrpt(struct bdlx_tok *tok,
  * lexical token given in
  * "tok", whilst parsing
  * in the "after head" inse-
- * rtion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
+ * rtion mode, using the pa-
+ * rser, parser output, mem-
+ * ory allocator and error
+ * logger given in "prsr",
+ * "out", "allocs" and "lo-
  * gger", respectively.  Re-
  * turns zero on error, non-
  * zero otherwise */
 static int dsptch_aftr_hd(struct bdlx_tok *tok,
                           struct bdpr_parser *prsr,
+                          void *out,
                           struct bd_allocs *allocs,
                           struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3593,23 +3709,32 @@ static int dsptch_aftr_hd(struct bdlx_tok *tok,
  * lexical token given in
  * "tok", whilst parsing
  * in the "in body" insert-
- * ion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
+ * ion mode, using the par-
+ * ser, parser output, mem-
+ * ory allocator and error
+ * logger given in "prsr",
+ * "out", "allocs" and "lo-
  * gger", respectively.  Re-
  * turns zero on error, non-
  * zero otherwise */
 static int dsptch_in_bdy(struct bdlx_tok *tok,
                          struct bdpr_parser *prsr,
+                         void *out,
                          struct bd_allocs *allocs,
                          struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3647,22 +3772,31 @@ static int dsptch_in_bdy(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "text" insertion
  * mode, using the parser,
- * memory allocator and
- * error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser output, memory
+ * allocator and error log-
+ * ger given in "prsr",
+ * "out", "allocs" and
+ * "logger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_txt(struct bdlx_tok *tok,
                       struct bdpr_parser *prsr,
+                      void *out,
                       struct bd_allocs *allocs,
                       struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3700,22 +3834,31 @@ static int dsptch_txt(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "table" insertion
  * mode, using the parser,
- * memory allocator and
- * error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser output, memory
+ * allocator and error log-
+ * ger given in "prsr",
+ * "out", "allocs" and
+ * "logger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_tble(struct bdlx_tok *tok,
                        struct bdpr_parser *prsr,
+                       void *out,
                        struct bd_allocs *allocs,
                        struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3753,22 +3896,31 @@ static int dsptch_tble(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "table text" ins-
  * ertion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser, parser output,
+ * memory allocator and er-
+ * ror logger given in "pr-
+ * sr", "out", "allocs" and
+ * "logger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_tble_txt(struct bdlx_tok *tok,
                            struct bdpr_parser *prsr,
+                           void *out,
                            struct bd_allocs *allocs,
                            struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3806,22 +3958,31 @@ static int dsptch_tble_txt(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "caption" insert-
  * ion mode, using the par-
- * ser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * ser, parser output, mem-
+ * ory allocator and error
+ * logger given in "prsr",
+ * "out", "allocs" and "lo-
+ * gger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_cptn(struct bdlx_tok *tok,
                        struct bdpr_parser *prsr,
+                       void *out,
                        struct bd_allocs *allocs,
                        struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3859,22 +4020,31 @@ static int dsptch_cptn(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "raw" insertion
  * mode, using the parser,
- * memory allocator and
- * error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser output, memory
+ * allocator and error log-
+ * ger given in "prsr",
+ * "out", "allocs" and "lo-
+ * gger", respectively.
+ * Returns zero on error,
+ * non-zero otherwise */
 static int dsptch_rw(struct bdlx_tok *tok,
                      struct bdpr_parser *prsr,
+                     void *out,
                      struct bd_allocs *allocs,
                      struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3912,22 +4082,31 @@ static int dsptch_rw(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "cell" insertion
  * mode, using the parser,
- * memory allocator and
- * error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
+ * parser output, memory
+ * allocator and error log-
+ * ger given in "prsr",
+ * "out", "allocs" and "log-
+ * ger", respectively.  Ret-
+ * urns zero on error, non-
  * zero otherwise */
 static int dsptch_cll(struct bdlx_tok *tok,
                       struct bdpr_parser *prsr,
+                      void *out,
                       struct bd_allocs *allocs,
                       struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3965,22 +4144,31 @@ static int dsptch_cll(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "select" insertion
  * mode, using the parser,
- * memory allocator and
- * error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser output, memory
+ * allocator and error log-
+ * ger given in "prsr", "out",
+ * "allocs" and "logger",
+ * respectively.  Returns
+ * zero on error, non-zero
+ * otherwise */
 static int dsptch_slct(struct bdlx_tok *tok,
                        struct bdpr_parser *prsr,
+                              void *out,
                        struct bd_allocs *allocs,
                        struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4017,23 +4205,32 @@ static int dsptch_slct(struct bdlx_tok *tok,
  * the lexical token given
  * in "tok", whilst parsing
  * in the "select in table"
- * insertion mode, using the
- * parser, memory allocator
+ * insertion mode, using
+ & the parser, parser ou-
+ * tput, memory allocator
  * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
+ * "prsr", "out", "allocs"
+ * and "logger", respectively.
+ * Returns zero on error, non-
  * zero otherwise */
 static int dsptch_slct_in_tble(struct bdlx_tok *tok,
                                struct bdpr_parser *prsr,
+                               void *out,
                                struct bd_allocs *allocs,
                                struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4071,22 +4268,32 @@ static int dsptch_slct_in_tble(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "after body" ins-
  * ertion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser, parser output,
+ * memory allocator and
+ * error logger given in
+ * "prsr", "out", "allocs"
+ * and "logger", respecti-
+ * vely.  Returns zero on
+ * error, non-zero other-
+ * wise */
 static int dsptch_aftr_bdy(struct bdlx_tok *tok,
                            struct bdpr_parser *prsr,
+                           void *out,
                            struct bd_allocs *allocs,
                            struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4124,22 +4331,32 @@ static int dsptch_aftr_bdy(struct bdlx_tok *tok,
  * "tok", whilst parsing
  * in the "in frameset" ins-
  * ertion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser, parser output,
+ * memory allocator and
+ * error logger given in
+ * "prsr", "out", "allocs"
+ * and "logger", respecti-
+ * vely.  Returns zero on
+ * error, non-zero otherw-
+ * ise*/
 static int dsptch_in_frmset(struct bdlx_tok *tok,
                             struct bdpr_parser *prsr,
+                            void *out,
                             struct bd_allocs *allocs,
                             struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4177,22 +4394,32 @@ static int dsptch_in_frmset(struct bdlx_tok *tok,
  * "tok", whilst parsing in
  * the "after frameset" ins-
  * ertion mode, using the
- * parser, memory allocator
- * and error logger given in
- * "prsr", "allocs" and "lo-
- * gger", respectively.  Re-
- * turns zero on error, non-
- * zero otherwise */
+ * parser, parser output,
+ * memory allocator and er-
+ * ror logger given in
+ * "prsr", "out", "allocs"
+ * and "logger", respecti-
+ * vely.  Returns zero on
+ * error, non-zero other-
+ * wise */
 static int dsptch_aftr_frmset(struct bdlx_tok *tok,
                               struct bdpr_parser *prsr,
+                              void *out,
                               struct bd_allocs *allocs,
                               struct bd_logger *logger)
 {
     struct bdhm_tok *hm_tok =    /* HTML version */
         (struct bdhm_tok *) tok; /*  of token */ 
     struct bdhm_rt *rt =         /* parser's */
-        (struct bdhm_rt *)       /* HTML run-time */
-        prsr->rt;
+        (struct bdhm_rt *)       /* HTML run- */
+        prsr->rt;                /* time */
+    struct bdxl_node *frag;      /* output fragment */
+    struct bdxl_doc *doc;        /* output focument */
+
+    /* get the output from its correct
+     * source */
+    if (rt->is_frag)
+        frag = (struct bdxl_node *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4224,8 +4451,9 @@ static int dsptch_aftr_frmset(struct bdlx_tok *tok,
 }
 
 static bdhm_dsptch_fn dsptch_fns[
-                   bdhm_ins_mdes_num] = {
+                   bdhm_ins_modes_num] = {
 
+]   dsptch_initl,
     dsptch_bfre_html,
     dsptch_bfre_hd,
     dsptch_in_hd,
@@ -4244,55 +4472,206 @@ static bdhm_dsptch_fn dsptch_fns[
     dsptch_aftr_bdy,
     dsptch_in_frmset,
     dsptch_aftr_frmset
-}
+};
 
 /* "dsptch" - within an HTML
  * parser, "dispatches", accor-
  * ding to the algorithm desc-
  * ribed in the spec., the ge-
  * neric token given in "tok",
- * as as scanned from input,
- * by "re-dispatching" to the
+ * as scanned from input, by
+ * "re-dispatching" to the
  * dispatch routine corres-
  * ponding to each parser ins-
- * ertion mode", using opaque
- * value, in this case cont-
- * aining the output HTML doc-
- * ument and insertion mode,
- * memory allocator and error
- * logger given in "opaque",
- * "allocs" and "logger", re-
- * spectively.  Returns zero
- * on error, non-zero otherw-
- * ise */
+ * ertion mode", using the pa-
+ * rser output, memory alloc-
+ * ator and error logger giv-
+ * en in "opaque", "allocs"
+ * and "logger", respectively.
+ * Returns zero on error, non-
+ * zero otherwise */
 int dsptch(struct bdlx_tok *tok,
            struct bdpr_parser *prsr,
-		   struct bd_allocs *allocs,
+           void *out,
+           struct bd_allocs *allocs,
            struct bd_logger *logger)
 {
-    struct bdhm_tok *hm_tok = /* HTML version */
-         (struct bdhm_tok *)  /* of "tok" */
-          tok;                /* output document */ 
-    struct bdhm_rt *rt =      /* parser's */
-        (struct bdhm_rt *)    /* HTML run-time */
+    struct bdhm_rt *rt =   /* parser's */
+        (struct bdhm_rt *) /* HTML run-time */
         prsr->rt;
-    bdhm_dsptch_fn fn;        /* current "ins-
-                               * ertion mode"'s 
-                               * dispatch func-
-                               * tion */
+    bdhm_dsptch_fn fn;     /* current "ins-
+                            * ertion mode"'s 
+                            * dispatch func-
+                            * tion */
 
-    /* get the dispatch function from
+    /* look-up dispatch function from
      * the current insertion mode */
-	fn = ins_mde_fns[rt->ins_mode];
+	fn = dsptch_fns[rt->ins_mode];
 
-    /* get parser's next insertion mode
-     * mode from the value returned 
-     * from calling the current mode's
-     * function */
-    of return (rt->ins_mde = (enum bdhm_ins_modes)
-                    fn(hm_tok,
-                       prsr,
-                       allocs,
-                       logger)) < 0;
-        ;
+    /* call the resulting function  */
+    return fn(tok,
+              prsr,
+              out,
+              allocs,
+              logger);
 }
+
+/* "init_rt" - returns an an HTML pa-
+ * rser run-time having the insertion
+ * node, stack of open elements, list
+ * of active formatting elements,
+ * stack of template insertion modes,
+ * "fragment case" flag, "form" ele-
+ * ment pointer, "head", element poi-
+ * nter, scripting flag annd "reset-
+ * ok" flag given in "ins_mode", "fmts",
+ * "tmpltes", "is_frag", "hd", "frm",
+ * "scrptg" and "rstok", respectively,
+ * using the memory allocator and error
+ * logger given in "allocs" and "logger",
+ * respectively.  Returns NULL on
+ * error */
+static struct bdhm_rt *init_rt(
+                enum bdhm_ins_modes ins_mode,
+                struct bdhm_opn_node *opns,
+                struct bdhm_fmt_node *fmts,
+                struct bdhm_rtmplte_node *tmpltes,
+                int is_frag,
+                struct bdhm_elem *hd,
+                struct bdhm_elem *frm,
+                int scrptg,
+                int rstok,
+                struct bd_allocs *allocs,
+                struct bd_logger *logger)
+{
+    struct bdhm_rt *ret; /* return
+                          * value */
+
+    /* try to allocate a run-
+     * time ... */
+    ret = bd_alloc(allocs,
+                   sizeof(struct
+                          bdhm_rt),
+                   logger);
+
+    if (!(ret))
+        return NULL;
+
+    /* and, if successful, set
+     * its fields and return
+     * it */
+    ret->ins_mode = ins_mode;
+    ret->opns     = opns;
+    ret->fmts     = fmts;
+    ret->tmpltes  = tmpltes;
+    ret->hd       = hd;
+    ret->frm      = frm;
+    ret->scrptng  = scrptng;
+    ret->rstok    = rstok;
+    return ret;
+}
+
+/* "bdhm_prse_doc" - parses, using the
+ * memory allocator and error logger
+ * given in "allocs" and "logger", re-
+ * spectively, the HTML-formatted byte
+ * stream given in "bytes" parameter,
+ * and returns an XML document having
+ * equivalent functionality to the
+ * document found in that stream.  Re-
+ * turns NULL on error */
+struct bdxl_doc *bdhm_prse_doc(struct bd_allocs *allocs,
+                               struct bd_logger *logger,
+                               struct bdut_bytes *bytes)
+{
+    struct bdxl_doc *ret;
+    struct bdhm_rt *rt;
+
+    if (!(ret = bdxl_init_doc(allocs,
+                              logger))))
+        return NULL;
+
+    if (!(rt = init_rt(bdhm_ins_mode_bfre_html,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL,
+                       0,
+                       0,
+                       0,
+                       allocs,
+                       logger)))
+        return NULL;
+
+    prsr->rt = (void *) rt;
+
+   of if (!(bdpr_run(allocs,
+                     logger,
+                     prsr,
+                     (bdpr_dsptch_fn)
+                         dsptch,
+                     (void *)
+                         ret,
+                      bytes))) {
+        bd_free(allocs,
+                rt);
+        return NULL;
+    }
+
+    return ret;
+}
+
+/* "bdhm_prse_frag" - parses, using the
+ * memory allocator and error logger gi-
+ * ven in "allocs" and "logger", respe-
+ * ctively, the HTML-formatted byte st-
+ * ream given in "bytes", and returns
+ * an XML fragment having equivalent fu-
+ * nctionality to the odocument fragme-
+ * nt found in the HTML stream.  Returns
+ * NULL on error */
+struct bdxl_node *bdhm_prse_frag(struct bd_allocs *allocs,
+                                 struct bd_logger *logger,
+                                 struct bdut_bytes *bytes)
+{
+    struct bdxl_node *ret;
+    struct bdhm_rt *rt;
+
+    if (!(ret = bd_alloc(allocs,
+                         sizeof(struct
+                                bdxl_node),
+                         logger))))
+        return NULL;
+
+    if (!(rt = init_rt(bdhm_ins_mode_initl,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL,
+                       1,
+                       0,
+                       0,
+                       allocs,
+                       logger)))
+        return NULL;
+
+    prsr->rt = (void *) rt;
+
+   if (!(bdpr_run(allocs,
+                  logger,
+                  prsr,
+                  (bdpr_dsptch_fn)
+                      dsptch,
+                  (void *)
+                      ret,
+                  bytes))) {
+        bd_free(allocs,
+                rt);
+
+        return NULL;
+    }
+    return ret;
+}
+
