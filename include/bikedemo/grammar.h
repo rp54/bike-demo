@@ -347,11 +347,11 @@ struct bdgm_table *bdgm_table_init(
 /* "bdgm_lr_table_build" - generates the ent-
  * ries in the LALR table given in the third
  * parameter from the grammar given in first
- * parameter such having th rstart symbol gi-
- * ven in the second parameter such that
+ * parameter such having th "start" symbol
+ * given in the second parameter such that
  * "recognised" ("reduced") production rules
- * in the grammar are cause the generation
- * of some form of output.  Returns zero on
+ * in the grammar cause the generation of
+ * some form of output.  Returns zero on
  * error, non-zero otherwise  */
 int bdgm_table_build(struct bdgm_grmr *,
                      int,
