@@ -949,7 +949,7 @@ static int first1(int type,
                         added = 1;
 
                 } else { /* so is a non-empty
-                        * rule */
+                          * rule */
 
                     /* set "add_syms" to the
                      * "first set" of the set
@@ -1619,7 +1619,7 @@ static int build_item_sets(struct bdgm_grmr *gmr,
     init_item->prod = start_prod;
     init_item->rhs  = 0;
 
-    /* mnon-recursively build sets of items
+    /* non-recursively build sets of items
      * required by aquisition of look-ahead
      * symbols for start symbol */
     if (rcrse) 
@@ -1642,9 +1642,14 @@ static int build_item_sets(struct bdgm_grmr *gmr,
         prod = (struct bdgm_prod *)
                    it->key;
 
-        /* if production's left-hand-side
-         * symbol is start symbol */
-        if (prod->lhs == start) {
+        /* if we're onomterested in
+         * the start symbol (i.e,
+         * it's not empty) and if
+         * production's left-hand-
+         * side symbol is start sym-
+         * bol */
+        if ( start != bdgm_sym_empty &&
+                prod->lhs == start) {
 
             /* build look-ahead symbols
              * for that symbol   */
@@ -2052,7 +2057,7 @@ static int set_state_entries(struct bdgm_table *table,
                             * correct type */
                            item = (struct bdgm_item *)
                                         it->key;
-                    
+
                            /* if the "goto set" of the
                             * current symbol type
                             * contains the current
