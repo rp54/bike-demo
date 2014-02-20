@@ -73,12 +73,13 @@ typedef int (* bdpr_init_fn)(struct bdpr_parser *,
  *
  * the first parameter is the received lexical
  * eoken, the second is the relevant parser,
- * and the third and fourth is the the memory
- * allocator and error logger to
- * use.  Returns zero on error, non-zero oth-
- * erwise */
+ * and the hirfd the parser output and the
+ * fourth and fifth is the the memory alloc-
+ * ator and error logger to use.  Returns
+ * zero on error, non-zero otherwise */
 typedef int (* bdpr_dsptch_fn)(struct bdlx_tok *,
                                struct bdpr_parser *,
+                               void *,
                                struct bd_allocs *,
                                struct bd_logger *);
 
@@ -115,11 +116,14 @@ struct bdpr_parser {
  * from the base parser given on the first parameter,
  * and extended and re-defined (sub-classed) via a
  * call to the initialisation function given in the
- * fourth parameter.  Returns NULL on an error, the
- * loaded parser otherwise */
+ * fifth parameter, and which uses the symbol given
+ * in the fourth parameter as its "start" symbol.
+ * Returns NULL on an error, the loaded parser oth-
+ * erwise */
 struct bdpr_parser *bdpr_init(struct bdpr_parser *,
                               struct bd_allocs *,
                               struct bd_logger *,
+                              int,
                               bdpr_init_fn); 
 
 /* "ihpr_insert" - "insert" (that is, synthes-
