@@ -20,16 +20,18 @@
 
 /* "ihpr_init" - allocates, initialises and returns,
  * using the memory allocator and error logger given 
- * in "allocs" and "logger", respectively,
- * a parser whose grammar productions and lexical
- * rules have been are inititially set from the base
- * arser given in "base", and extended
- * and re-defined (sub-classed) via a call to the
- * initialisation function given in "init". Returns
+ * in "allocs" and "logger", respectively, a parser
+ * whose grammar productions and lexical rules have
+ * been are inititially set from the base arser gi-
+ * ven in "base", and extended and re-defined (sub-
+ * classed) via a call to the initialisation function
+ * given in "init", and gthoich uses "start" as its
+ * "start" symbol. Returns
  * NULL on an error, the loaded parser otherwise */
 struct bdpr_parser *bdpr_init(struct bdpr_parser *bse,
                               struct bd_allocs *allocs,
                               struct bd_logger *logger,
+                              int start,
                               bdpr_init_fn init) 
 
 {
@@ -73,6 +75,7 @@ struct bdpr_parser *bdpr_init(struct bdpr_parser *bse,
     /* build the parsing table from the
      * grammar grammar production set */
     if (bdgm_table_build(ret->gmr,
+                         start,
                          ret->table,
                          allocs,
                          logger)) ?
@@ -156,6 +159,7 @@ int bdpr_run(struct bd_allocs *allocs,
         if (dsptch)
             if (!(dsptch(tok,
                          prsr,
+                         opaque,
                          allocs,
                          logger)))
                 return 0;
