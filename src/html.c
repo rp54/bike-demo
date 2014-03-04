@@ -46,18 +46,22 @@ static char *xml_ns     =
             *xlnk_ns    =
         "http://www.w3.org/1999/xlink";
 
+
 /* "spcls", "frmttngs", "gnrls",
  * "vds", "itm_lsts", "bttns",
- * "tbles", "slcts" - list of ele-
+ * "tbles", "slcts", "rsttble",
+ * "frmscctble" - list of ele-
  * ment name/ name-space pairs
  * categorised as "special" and
  * "formatting", respectively,
- * the "void" element types and
- * those element types causing
- * an element to be in a "gener-
- * al", "item list", "button",
- * "table" and "select" scope
- * (as defined in the spec.) */
+ * the "void", "resettable"
+ * and "form-associateable " ele-
+ * ment types and those element
+ * types causing an element to
+ * be in a "general", "item
+ * list", "button", "table"
+ * and "select" scope (as de-
+ * fined in the spec.) */
 
 
 char *spcls[] = {
@@ -236,6 +240,28 @@ char *slcts[] = {
 
     "optgroup", html_ns,
     "option",   html_ns,
+    NULL
+};
+char *esttble[] = {
+
+    "input",    html_ns,
+    "keygen",   html_ns,
+    "output",   html_ns,
+    "select",   html_ns,
+    "textarea", html_ns,
+    NULL
+};
+char *frmssctble[] = {
+
+    "button",   html_ns,
+    "fieldset", html_ns,
+    "input",    html_ns,
+    "keygen",   html_ns,
+    "label",    html_ns,
+    "object",   html_ns,
+    "output",   html_ns,
+    "select",   html_ns,
+    "textarea", html_ns,
     NULL
 };
 
@@ -757,6 +783,66 @@ static int in_scope_list(struct bdhm_rt rt,
 	}
 }
 
+/* "in_list" - returns non-
+ * zero if sman lelement hav-
+ * ing the local and name-sp-
+ * ace names given in "nme"
+ * anfd "ns", respectively, 
+ * is found in the list of
+ * NULL-terminated name/name-
+ * space string pairs given
+ * in "pairs", using the mem-
+ * ory allocator and error
+ * logger given in "allocs"
+ * and "logger", repectively */
+
+static int in_list(char *nme,
+                   char ns,
+                   struct bd_allocs *allocs,
+                   struct bd_logger *logger,
+                   char **pairs)
+{
+    int i;                  /* argument ite-
+                             * rator */
+
+    /* and iterate through
+     * the elements in list */
+    for (i = 0; pairs[i]; i += 2)
+
+        /* if the name and name
+         * -space both match,
+         * return a positiive
+         * result */
+        if ((!(strcmp(nme, pairs[i])) &&
+            (!(strcmp(ns,  pairs[i + 1])))
+            return l;
+
+        /* if no names nmatched,
+         * we get here, so return
+         * failure */
+        return 0;
+    }
+}
+
+/* "log_prse_err" - log a parse
+ * error, using the logger gi-
+ * ven in "logger".  Returns ero
+ * on error, non-zero iotherwise */
+static int log_prse_err(
+              struct bd_logger *logger)
+{
+    int msg;
+
+    if ((msg = logger->get(logger,
+                           logger->opaque,
+                           bdhm_log_prse_err) < 0)
+        return 0;
+
+    return logger->log(logger,
+                       logger->opaque,
+                       msg);
+}
+
 /* "in_scope" returns non-
  * zero if one of a set group
  * of "paticular" element
@@ -808,34 +894,6 @@ static int in_list_itm_scope(struct bdhm_rt *rt,
                          itm_lsts);
 }
 
-/* "in_bttn_scope" returns
- * non-zero if one of a set
- * group of element types
- * (listed in the spec.) "in
- * button scope" of the run-
- * time given in "rt", using
- * the memory allocator and
- * error logger given in "al-
- * locs" and "logger", resp-
- * ectively */
-static int in_bttn_scope(struct bdhm_rt *rt,
-                         struct bd_allocs *allocs,
-                         struct bd_logger *logger);
-
-{
-    /* will return non-zero if in
-     * the ""particular scope" or in
-     * the "bttns" list */
-    return in_prtclr_scope(rt,
-                           allocs,
-                           logger,
-                            prtclrs) ||
-           in_scope_list(rt,
-                         allocs,
-                         logger,
-                         bttns);
-}
-
 /* "in_table_scope" returns
  * non-zero if one of a set
  * group of element types
@@ -854,10 +912,10 @@ static int in_list_tble_scope(struct bdhm_rt *rt,
     /* will return non-zero if in
      * the ""particular scope" or in
      * the ltbles" list */
-    return in_prtclr_scope(rt,
-                           allocs,
-                           logger,
-                            prtclrs) ||
+    return in_scope(rt,
+                    allocs,
+                    logger,
+                    prtclrs) ||
               in_scope_list(rt,
                             allocs,
                             logger,
@@ -881,10 +939,10 @@ static int in_bttn_scope(struct bdhm_rt *rt,
     /* will return non-zero if in
      * the ""particular scope" or in
 	 * the lst_itm" list */
-    return in_prtclr_scope(rt,
-                           allocs,
-                           logger,
-                            prtclrs) ||
+    return in_scope(rt,
+                    allocs,
+                    logger,
+                    prtclrs) ||
               in_scope_list(rt,
                             allocs,
                             logger,
@@ -942,7 +1000,7 @@ enum bdhm_elem_types elem_type(struct bdxl_elem *elem,
 }
 
 /* "get_frst" - sets the element
- * given i in "trgt" to the last
+ * given in "trgt" to the last
  * element, within the run-time
  * given in "rt", having the type
  * named in "type", as found in a
@@ -1054,12 +1112,11 @@ static int get_last(struct bdhm_rt *rt,
  * error logger givren in "allocs"
  * and "logger", respectively. Imp-
  * lements the "appropriate place
- * for inserting a node" alforithm
+ * for inserting a node" algorithm
  * descrlbed in the spec. */
 static struct bdxl_elem *find_insrtn_loc(
                     struct bdgm_rt *rt,
                     struct bdxl_elem *ovrrde,
-                    struct bdhm_doc *doc,
                     struct bd_allocs *allocs,
                     struct bd_logger *logger)
 {
@@ -1182,6 +1239,37 @@ static struct bdxl_elem *find_insrtn_loc(
     return ret;
 }
 
+/* "is_opn" - returns non-ezro if
+ * snan element having the local
+ * name givnen in "nme" exists on
+ * the staclk of open elements of
+ * the HTML parser run-time given
+ * in "rt", using the memory all-
+ * ocator adnd error logger given
+ * nin "allocs" and "logger", res-
+ * pectively */
+static int is_opn(char *nme,
+                  struct bdhm_rt *rt,
+                  struct bd_allocs *allocs,
+                  struct bd_logger *logger)
+               ) 
+{
+    struct bdut_str *nme_str;
+    struct bdhm_opn_node *opn;
+
+    if (!(bdut_from_utf8(nme_str,
+                         nme,
+                         allocs,
+                         logger))) 
+        return 0;
+
+    for (opn = rt->opns->bttm;
+         bdut_strcmp(opn->elem->nme) &&
+                     opn != rt->opns->top;
+         opn = opn->nxt)
+
+    return opn != rt->opns->top;
+}
 
 /*  "get_attr" - returns the value
  * of the '='-separated name-value
@@ -1987,105 +2075,169 @@ attrbs:
 	 *
 	 * each of these states corresponds
 	 * to a analagously-named tokeniser
-	 * state defined in the spec. */
+	 * state defined in the spec.
+	 *
+	 * the parenthesised value is the
+	 * name of th state given in the
+	 * the spec.*/
     int
         dta_state           = bdlx_new_state(prsr->lex),
+        /* ("data") */
         chrrf_in_dta_state  = bdlx_new_state(prsr->lex),
-        chrrf_in_rcdta_state =
+        /* ("character reference in data") */
+        rcdta_state =
                               bdlx_new_state(prsr->lex),
-        rcdta_state         = bdlx_new_state(prsr->lex),
+        /* ("RCDATA") */
+        chrrf_in_rcdta_state = 
+                              bdlx_new_state(prsr->lex),
+        /* ("character reference in RCDATA") */
         rwtxt_state         = bdlx_new_state(prsr->lex),
+        /* ("RAWTEXT") */
         scrpt_dta_state     = bdlx_new_state(prsr->lex),
+        /* ("script data") */
         plntxt_state        = bdlx_new_state(prsr->lex),
+        /* ("PLAINTEXT") */
         tg_opn_state        = bdlx_new_state(prsr->lex),
+       /* ("tag open") */
         end_tg_opn_state    = bdlx_new_state(prsr->lex),
-        rcdta_lt_state        bdlx_new_state(prsr->lex),
-        rcdta_end_tg_opn_state =
-                              bdlx_new_state(prsr->lex),
-        rcdta_end_tg_nme_state =
-                              bdlx_new_state(prsr->lex),
+       /* ("end tag open") */
+        tg_nme_state        = bdlx_new_state(prsr->lex),
+        /* ("tag name") */
+        rcdta_lt_state      = bdlx_new_state(prsr->lex),
+        /* ("RCDATA less-than sign") */
+        rcdta_end_tg_opn_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("RCDATA end tag open") */
         rwtxt_lt_state      = bdlx_new_state(prsr->lex),
-        rwtxt_end_tg_opn_state =
-                              bdlx_new_state(prsr->lex),
-        rwtxt_end_tg_nme_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_lt =        bdlx_new_state(prsr->lex),
-        scrpt_dta_end_tg_opn_state = 
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_esc_strt_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_dsh_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_lt_stat =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_end_tg _opn_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_escd_end_tg_nme_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_esc_strt_state = 
-		                      bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_state = 
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_dsh_state =
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_dsh_dsh_state = 
-                              bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_escd_lt_state = 
+        /* ("RAWTEXT less-than sign") */
+        rwtxt_end_tg_opn_state
                             = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_esc_end_state
-	                        = bdlx_new_state(prsr->lex),
-        scrpt_dta_dble_esc_end_state
+        /* ("RAWTEXT end tag open") */
+        scrpt_dta_lt =      = bdlx_new_state(prsr->lex),
+        /* ("script data less-than sign") */
+        scrpt_dta_esc_strt_state
                             = bdlx_new_state(prsr->lex),
+        /* ("script data escape start") */
+        scrpt_dta_escd_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data escaped") */
+        scrpt_dta_escd_dsh_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data escaped dash") */
+        scrpt_dta_escd_dsh_dsh_state =
+                              bdlx_new_state(prsr->lex),
+        /* ("script data escaped dash dash") */
+        scrpt_dta_escd_lt_state =
+                              bdlx_new_state(prsr->lex),
+        /* ("script data escaped less-than sign") */
+        scrpt_dta_escd_end_tg_opn_state 
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data escaped end tag open") */
+        scrpt_dta_dble_escd_end_tg_nme_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data escaped end tag name") */
+        scrpt_dta_dble_escd_dsh_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data double escaped dash") */
+        scrpt_dta_dble_descd_dsh_dsh_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data double escaped dash dash") */
+        scrpt_dta_dble_escd_lt_state
+                            = bdlx_new_state(prsr->lex),
+        /* ("script data double escaped less-than sign") */
+        scrpt_dta_dble_esc_end_state
+                        = bdlx_new_state(prsr->lex),
+        /* ("script data double escape end") */
         bfre_attr_nme_state = bdlx_new_state(prsr->lex),
+        /* ("before attribute name") */
         attr_nme_state      = bdlx_new_state(prsr->lex),
+        /* ("attribute name") */
         aftr_attr_nme_state = bdlx_new_state(prsr->lex),
+        /* ("after attribute name") */
         bfre_attr_val_state = bdlx_new_state(prsr->lex),
+        /* ("before attribute value") */
         attr_val_dq_state   = bdlx_new_state(prsr->lex),
+        /* ("attribute value (double-quoted)") */
         attr_val_sq_state   = bdlx_new_state(prsr->lex),
+        /* ("attribute value (single-quoted)") */
         attr_val_unq_state  = bdlx_new_state(prsr->lex),
+        /* ("attribute value (unquoted)") */
         chr_rf_in_attr_val_state =
                               bdlx_new_state(prsr->lex),
+        /* (" character reference in attribute value") */
         aftr_attr_val_unq_state = 
                               bdlx_new_state(prsr->lex),
+        /* (" after attribute value (unquoted)") */
         slf_clsng_strt_tg_state =
                               bdlx_new_state(prsr->lex),
+        /* ("self-closing start tag") */
         bgs_cmt_state       = bdlx_new_state(prsr->lex),
+        /* ("bogus comment") */
         mrkup_dcl_opn_state = bdlx_new_state(prsr->lex),
+        /* ("markup declaration open") */
         cmt_strt_state      = bdlx_new_state(prsr->lex),
+        /* ("comment start") */
         cmt_strt_dsh_state  = bdlx_new_state(prsr->lex),
+        /* ("comment start dash") */
         cmt_state           = bdlx_new_state(prsr->lex),
+        /* ("comment") */
         cmt_end_state       = bdlx_new_state(prsr->lex),
+        /* ("comment end") */
         cmt_end_dsh_state   = bdlx_new_state(prsr->lex),
+        /* (""comment dash") */
         cmt_end_bng_state   = bdlx_new_state(prsr->lex),
+        /* (""comment ehd bang") */
         doctype_state       = bdlx_new_state(prsr->lex),
-        bfre_doctype_state  = bdlx_new_state(prsr->lex),
-        doctype_nme_state   = bdlx_new_state(prsr->lex),
-        aftr_doctype_nme_state =
-                              bdlx_new_state(prsr->lex),
-        aftr_doctype_pub_kwd_state =
-                              bdlx_new_state(prsr->lex),
-        doctype_pub_id_dq_state =
-                              bdlx_new_state(prsr->lex),
-        doctype_pub_id_sq_state  =
-                              bdlx_new_state(prsr->lex),
+        /* ("DOCTYPE") */
+        bfre_doctype_nme_state 
+                             = bdlx_new_state(prsr->lex),
+        /* ("before DOCTYPE name") */
+        doctype_nme_state    = bdlx_new_state(prsr->lex),
+        /* ("DOC-TYPE name") */
+        aftr_doctype_nme_state
+                             = bdlx_new_state(prsr->lex),
+        /* ("after DOCTYPE name") */
+        aftr_doctype_pub_kwd_state
+                             = bdlx_new_state(prsr->lex),
+        /* ("after DOCTYPE public keyword") */
+        doctype_pub_id_dq_state
+                             = bdlx_new_state(prsr->lex),
+        /* ("DOCTYPE public identifier
+         * (double-quoted)") */
+        doctype_pub_id_sq_state
+                             = bdlx_new_state(prsr->lex),
+        /* ("DOCTYPE public identifier
+         * (single-quoted)") */
         aftr_doctype_pub_id_state =
                               bdlx_new_state(prsr->lex),
+        /* ("after DOCTYPE public
+         * identifier") */
         btwn_doctype_pubsys_ids_state =
                               bdlx_new_state(prsr->lex),
+        /* ("between DOCTYPE public
+         * and system identifiers") */
         aftr_doctype_sys_kwd_state =
                               bdlx_new_state(prsr->lex),
+        /* ("after DOCTYPE system keyword") */
         bfre_doctype_sys_id_state =
                               bdlx_new_state(prsr->lex),
+        /* ("before DOCTYPE system identifier") */
         doctype_sys_id_dq_state =
                               bdlx_new_state(prsr->lex),
+        /* ("DOCTYPE system identifier
+         * (double-quoted)") */
         doctype_sys_id_sq_state =
                               bdlx_new_state(prsr->lex),
+        /* ("DOCTYPE system identifier
+         * (single-quoted)") */
         aftr_doctype_sys_id_state =
                               bdlx_new_state(prsr->lex),
+        /* ("After DOCTYPE system
+         * identifier") */
         bgs_doctype_state   = bdlx_new_state(prsr->lex),
+        /* ("bogus DOCTYPE") */
         cdta_sctn_state     = bdlx_new_state(prsr->lex);
+        /* ("CDATA section") */
 
     if (!(bdlx_add_rule(js->lex,
                         allocs,
@@ -3083,23 +3235,24 @@ struct bdlg_obj *bdhm_add_doc_prps(
 /* "bdhm_add_elem_prps" - returns a
  * language-abstracted object popul-
  * ated with DOM propertiesof the El-
- * ement given in "elem", using the
- * memory allocator and error logger
- * given in "allocs" and "logger",
- * respectively.  Returns NULL on
- * error */
+ * ement a generic cast of which is
+ * given in "elem", using the memory
+ * allocator and error logger given
+ * in "allocs" and "logger", respec-
+ * tively.  Returns NULL on error */
 struct bdlg_obj *bdhm_add_elem_prps(
-                       struct bdhm_elem *elem,
+                       void *elem,
                        struct bd_allocs *allocs,
                        struct bd_logger *logger)
 {
     struct bdlg_obj *ret;          /* return value */
-    struct bdxl_elem *elem = NULL; /* super-class
+    struct bdxl_node *node = NULL; /* super-class
                                     *  object */
 
     /* initialise  object to return with
      * the properties of an XML Element"*/
-    if (!(ret = bddm_add_elem_prps(&elem->elem,
+    if (!(ret = bddm_add_node_prps((void *)
+                                       elem,
                                    allocs,
                                    logger)))
         return NULL;
@@ -3197,16 +3350,17 @@ struct bdlg_obj *bdhm_add_elem_prps(
 
 }
 
-/* "bdhm_set_html_elem_prps" - ret-
- * urns  a language-abstracted obj-
- * ect populated with DOM properties
- * of the HTML Element given in "ht-
- * ml", using the memory allocator
- * and error logger given in "allo-
- * cs" and "logger", respectively.
- * Returns NULL on error */
-struct bdlg_obj *bdhm_add_html_elem_prps(
-                       struct bdhm_html_elem *html,
+/* "bdhm_add_doc_prps" - returns a
+ * language-abstracted object pop-
+ * ulated with DOM properties of
+ * the HTML Document a generic cast
+ * of which is given in "doc", us-
+ * ing the memory allocator and
+ * error logger given in "allocs"
+ * and "logger", respectively. Ret-
+ * urns NULL on error */
+struct bdlg_obj *bdhm_add_doc_prps(
+                       void *doc,
                        struct bd_allocs *allocs,
                        struct bd_logger *logger)
 {
@@ -3216,7 +3370,8 @@ struct bdlg_obj *bdhm_add_html_elem_prps(
 
     /* initialise  object to return with
      * the properties of an XML Element"*/
-    if (!(ret = bddm_add_elem_prps(&html->elem,
+    if (!(ret = bddm_add_doc_prps((void *)
+                                       doc,
                                    allocs,
                                    logger)))
         return NULL;
@@ -3322,7 +3477,13 @@ static int dsptch_initl(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
+
             };
             break;
 	};
@@ -3360,6 +3521,8 @@ static int dsptch_frgn_cnt(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s
                              * type ... */
@@ -3385,7 +3548,12 @@ static int dsptch_frgn_cnt(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
 	};
@@ -3423,6 +3591,8 @@ static int dsptch_bfre_html(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s
                              * type ... */
@@ -3448,7 +3618,12 @@ static int dsptch_bfre_html(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3486,6 +3661,8 @@ static int dsptch_bfre_hd(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s
                              * type ... */
@@ -3511,7 +3688,12 @@ static int dsptch_bfre_hd(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3549,6 +3731,8 @@ static int dsptch_in_hd(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3573,7 +3757,11 @@ static int dsptch_in_hd(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
             };
             break;
     };
@@ -3611,6 +3799,8 @@ static int dsptch_in_hd_noscrpt(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3635,7 +3825,12 @@ static int dsptch_in_hd_noscrpt(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3673,6 +3868,8 @@ static int dsptch_aftr_hd(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3697,7 +3894,12 @@ static int dsptch_aftr_hd(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3735,6 +3937,8 @@ static int dsptch_in_bdy(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3759,7 +3963,12 @@ static int dsptch_in_bdy(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3797,6 +4006,8 @@ static int dsptch_txt(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3821,7 +4032,12 @@ static int dsptch_txt(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3859,6 +4075,8 @@ static int dsptch_tble(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3883,7 +4101,12 @@ static int dsptch_tble(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3921,6 +4144,8 @@ static int dsptch_tble_txt(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -3945,7 +4170,12 @@ static int dsptch_tble_txt(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -3983,6 +4213,8 @@ static int dsptch_cptn(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4007,7 +4239,12 @@ static int dsptch_cptn(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4045,6 +4282,8 @@ static int dsptch_rw(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4069,7 +4308,12 @@ static int dsptch_rw(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4107,6 +4351,8 @@ static int dsptch_cll(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4131,7 +4377,12 @@ static int dsptch_cll(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4169,6 +4420,8 @@ static int dsptch_slct(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4193,7 +4446,12 @@ static int dsptch_slct(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4231,6 +4489,8 @@ static int dsptch_slct_in_tble(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4255,7 +4515,12 @@ static int dsptch_slct_in_tble(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4294,6 +4559,8 @@ static int dsptch_aftr_bdy(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4318,7 +4585,12 @@ static int dsptch_aftr_bdy(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4357,6 +4629,8 @@ static int dsptch_in_frmset(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4381,7 +4655,12 @@ static int dsptch_in_frmset(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4420,6 +4699,8 @@ static int dsptch_aftr_frmset(struct bdlx_tok *tok,
      * source */
     if (rt->is_frag)
         frag = (struct bdxl_node *) out;
+    else
+        doc = (struct bdxl_doc *) out;
 
     switch (hm_tok->type) { /* switch on "tok"'s type ... */
 
@@ -4444,7 +4725,12 @@ static int dsptch_aftr_frmset(struct bdlx_tok *tok,
         case bdhm_tok_chr:
 
             switch (tok->u.chr) {
-                case 'a':
+
+                case '\n':
+                case '\r':
+                case '\t':
+                case ' ':
+                    break;
             };
             break;
     };
@@ -4514,6 +4800,1464 @@ int dsptch(struct bdlx_tok *tok,
               out,
               allocs,
               logger);
+}
+
+/* "mke_attr" ewrwrurns an HTML tag attr-
+ * rtyuinbyute having the nsme and name-
+ * space given in "nme" and "ns" tespect-
+ * ively, uasin  f the memory allocator
+ * and error logger iven in "allocs" and
+ * "logger", resopectively.  Returns NULL
+ * on error */
+static struct bdhm_attr *mke_attr(
+                     struct bdut_str *nme,
+                     struct bdut_str *ns) 
+{
+    struct bdhm_attr *ret; /* return
+                            * value */
+
+    /* allocate an attribute and,
+     * if dsuvvccessgful, set ts
+     * fields and return it*/
+    ret  = bd_alloc(allocs,
+                    sizeof(struct
+                           bdhm_attr),
+                    logger);
+    if (!(ret))
+        return NULL;
+    ret->nme  = nme;
+    ret->mnas = ns;
+    return ret;
+}
+/* "cmp_attrs" - returns zero if the
+ * tributes of the XML nodes in "node1"
+ * and attr2" are equal, for the
+ * purposes pg pushing active
+ * formatting elements  */
+static int cmp_attrs(struct bdxl_attr *attr1,
+                     struct bdxl_attr *attr2)
+{
+    /* attributes are identical if
+     * local names and name-spaces
+     * of both are identical */
+    return bdut_strcmp(attr1->ns,
+                       attr2->ns) &&
+           bdut_strcmp(attr1->lcl,
+                       attr2->lcl);
+}
+
+/* "cmp_all_attrs" - returns zero if each
+ * of the attributes in "attrs1" and
+ * "attrs2" appare present in both, irres-
+ * pective of order */
+static int cmp_all_attrs(
+               struct bd_map_node *attrs1,
+               struct bd_map_node *attrs2)
+{
+    struct bd_map_node *attrs = NULL; /* set holding all */
+                       *ins_node,     /* found attributes,*/ 
+                       *it;           /* insertion node and
+                                       * iterator */
+
+    /* iterate through the attrib-
+     * utes of attrs1", adding each
+     * to "attrs", if not already
+     * presesnt, thereby making
+     * each omode in "attrs" unique */
+    for (it = bd_map_first(attrs1);
+         it;
+         it = bd_map_next(it)) {
+        if (!(bd_map_find(attrs,
+                          (struct bdxl_elem *)
+                              it->key,
+                          (bd_map_cmp_fn)
+                              cmp_attrs))) {
+            ins_node = bd_alloc(allocs,
+                                sizeof(struct
+                                       bd_map_node),
+                                logger);
+            if (!(ret))
+                return 0;
+            if ((bd_map_insert(&attrs,
+                               ins_node,
+                               it->key,
+                               (bd_map_cmp_fn)
+                                   cmp_attrs,
+                                it->value)))
+                return 0;
+        }
+    }
+
+    /* then iterate, this time through
+     * "attrs2", finding it to be iden-
+     * tical to "attrs1" (without resp-
+     * ect to order) if each node in
+     * "attrs2", is also in "attrs1",
+     * the nodes of both simultaneo-
+     * usly als having identical (str-
+     * ing) values */
+    for (it = bd_map_first(attrs2);
+         it;
+         it = bd_map_next(it)) {
+        node1 = bd_map_find(attrs1,
+                            it->key,
+                            (bd_map_cmp_fn)
+                                cmp_attrs;
+        node2 = bd_map_find(attrs2,
+                            it->key,
+                            (bd_map_cmp_fn)
+                                cmp_attrs;
+        va1 = (struct bdut_str *)
+              node1->value;
+        va1 = (struct bdut_str *)
+              node1->value;
+        if (node1 &&
+            node2 &&
+            (!(bdut_strcmp(val2,
+                           val2))))
+            break;
+        }
+        return !it;
+    }
+}
+
+/* "push_fmts" "pushes" the "format-
+ * ting element" given in "elem" onto
+ *the list of active formatting ele-
+ * ments of the parser run-time given
+ * in "rt".  Returns zero on error,
+ * non-zero otherwise, using the mem-
+ * ory allocator and error logger
+ * given in "allocs" and "logger",
+ * respectively.  Implements the
+ * "push onto the list of active
+ * formatting elements" algorithm
+ * defined in the spec  Returns
+ * zero on error, non-zero other-
+ * wise*/
+static int push_fmts(
+            struct bdhm_fmt_elem *elem,
+            struct bdhm_rt *rt,
+            struct bd_allocs *allocs
+            struct bd_logger *logger)
+{
+    int i = 0,                    /* iterator index */
+        hs_none;                  /* and whether there
+                                   * are any markers
+                                   * in list */
+    struct bdhm_fmt_elem *orig,   /* original list top, */
+	                     *nw,     /* element to add, */
+                         *it,     /* iterator, and earl- */
+                         *elst    /* iest marker element  */
+
+    /* according to he spec.: "If th-
+     * ere are already three elements
+     * in the list after the last list
+     * marker, if any, or anywhere in
+     * the list if there are no list
+     * markers, that have the same tag
+     * name, namespace, and attributes"
+     * ... */
+    for (it = rt->fmts;
+        (!(cmp_elems(it->elem, elem))) &&
+                    (!(it->mrkr));
+        it = it->nxt)
+    hs_none = (int) !it;
+    for (i = 0, ilst = rt->fmts;
+        (!(cmp_elems(it->elem, elem))) &&
+                    (!(it->mrkr));
+        it = it->nxt, elst = elst->nxt)
+
+    /* "then remove the earliest such
+     * element from the list" */
+    if (i > 3 || hs_none)
+        elst->nxt = elst->nxt->nxt;
+
+    /*"add "elem" to the list" */
+    orig = rt->fmts;
+    nw = bd_alloc(allocs,
+                  sizeof(struct
+                         bdhm_fmt_elem),
+                  logger);
+    if (!(nw))
+        return 0;
+    memcpy(nw,
+           elem,
+           sizeof(struct bdhm_fmt_elem));
+    rt->fmts->nxt = orig;
+    rt-orig->prv  = nw;
+    rt->fmts = nw;
+    return l;
+}
+
+/* "fmt_is_opn" returns bobnon00-zero
+ * if the active rormatting eelement
+ * given in "fmt" id s present in
+ * the stack of open elments of the
+ * HTML run-time given in e "rt" */
+static nint fmt_is_opn(
+              struct bdhm_fmt_elem *elem,
+              struct bdhm_rt *rt)
+{
+    struct bdhm_opn_node *opn; /* current
+                                * open
+                                * element */
+
+    /* iterate through the stack
+     * of open elements until we
+     * get to thhe top or find
+     * "elem" in the stack */
+    for (opn = rt->opns->bttm;
+         opn != rt->opns->top &&
+                elem->elem !=
+                opn->elem);
+         opn = opn->prv);
+
+    /* "elem" is in the stack
+     * if we get here before we
+     * get to the top   */
+    return opn != rt->opns->top;
+}
+
+/* "ins_cmt_frm_tpl" inserted a
+ * comment, from the token given
+ * in "tok", as a child of the
+ * parent given in in "pos" (if
+ * non-NULL), using the HTML
+ * parser run-time, memory all-
+ * ocator amdand error logger,
+ * memory  and  gven in "rt", "al-
+ * locs" and "logger", respect-
+ * ively.  Returns zero on errror,
+ * non-zero otherwise */
+static int ins_cmt_frm_tok(struct bdhm_tok *tok,
+                           struct bdhm_rt *rt,
+                           struct bdxl_node *pos,
+                           struct bd_allocs *allocs,
+                           struct bd_logger *logger)
+{
+    struct bdxl_node *adj_ins_loc;
+
+    if (pos)
+        adj_ins_loc = pos;
+    else
+        if (!(adj_ins_loc = find_insrtn_loc(
+                                     rt,
+                                     allocs,
+                                     logger))) 
+            return 0;
+
+}
+
+/* "get_attr" - returns the attr-
+ * ibute fo the XML element given in
+ * "elem", the UTF-8 transformation
+ * of the name of which is is given
+ * in "nme".  Returns NULL on error,
+ * using the memory allocator and
+ * error loggor gven in "allocs" and
+ * "logger", respectively */
+static char *get_attr(struct bdxl_elem *elem,
+                      char *nme,
+                      struct bd_allocs *allocs,
+                      struct bd_logger *logger)
+{
+    struct bdut_str *nme_str; /* unicode
+                               * version
+                               * of "nme" */
+    struct bd_map_node *node; /* map node
+                               * of the
+                               * attribute*/
+    char *ret;                /* return
+                               * value */
+
+    /* gte unicode transform of "nme" */
+    if (!(bdut_from_utf8(nme_str,
+                         nme,
+                         allocs,
+                         logger)))
+        return NULL;
+
+    /* find the attribute of "elem"
+     * named "nme" */
+    if (!(node = bd_map_find(elem->attrs,
+                             nme_str,
+                             (bd_map_cmp_fn)
+                                 bdut_strcmp)))
+        return NULL;
+
+    /* get its attribute object, trans-
+     * form its name to UTF-8 and return
+     * the name */
+    attr = (struct bdxl_attr *)
+            node->value;
+    if (!(bdut_from_uf8(attr->ns,
+                        ret,
+                        allocs,
+                        logger)))
+        return NULL:
+    return ret;
+}
+
+/* "asscte"- "ASassciates" the form
+ * element given in "frm" eewith the
+ * element fuven in "elem".  Returns
+ * rxtezro on error, non-zero other-
+ * wise. Inplements the "" algorithm */
+static int asscte(struct bdxl_elem *frm,
+                  struct bdxl_elem *elem)
+{
+    elem->ownr = frm;
+    return 1;
+}
+
+/* "get_frm_ownr" - returns the "form
+ * owner" of the element given in
+ * "elem".  Ret, using the memory and
+ * error logger given n in "allocs" and
+ * "logger", respectively.  Returns
+ * NULL on error.  Implements the "get
+ * the form owner" algorithm */
+static struct bdxl_elem *get_frm_ownr(
+                struct bdxl_elem *elem,
+                struct bd_allocs *allocs,
+                struct bd_logger *logger)
+{
+    struct bdxl_elem *ownr;
+    struct bdxl_elem *attr;
+    struct bdut_str *frm_str,
+                    *htmlns_str;
+    int is_rssctble;
+
+    if (!(fbdut_from_utf8(frm_str,
+                          "form",
+                          allocs,
+                          logger))
+        return NULL;
+    if (!(fbdut_from_utf8(htmlns_str,
+                          html_ns,
+                          allocs,
+                          logger))
+        return NULL;
+
+    is_rssctble = in_list(nme,
+                          ns,
+                          allocs,
+                          logger,
+                          rssctble),
+)
+
+    for (ownr = elem;
+         ownr && strcmp(ownr->lcl,
+                        frm_str) &&
+                 strcmp(ownr->ns,
+                     htmlns_str);
+          ownr = ownr->prnt))
+
+    if (!(ownr))
+        ownr = get_attr(ownr,
+                        "form");
+   
+    return NULL;
+}
+
+/* "rst_frm_ownr" - resets the "form
+ * owner" of the element given in
+ * "elem".  Returns NULL on error.
+ * Implements the "reset the form
+ * owner" algorithm */
+static struct bdxl_elem *rst_frm_ownr(
+                struct bdxl_elem *elem)
+{
+    return NULL;
+}
+
+/* "sme_hme" - returns non-zero if
+ * the elements given in "elem1" and
+ * "elem2", respectively, have the
+ * same "home" (as defined in the
+ * spec.).  Implements the "has
+ * the same home" algorithm */
+static int sme_hme(struct bdxl_elem *elem1,
+                   struct bdxl_elem *elem2)
+{
+    /* elements with the same "home"
+     * strdyt strare rooted  in the
+     * same tree, and, therefore,
+     * hsbve the dsame document
+     * "owner"*/
+    return elem1->owner == elem2->ownr;
+}
+
+/* "cmp_cps" tryreturns the result
+ * of s comparison vbetween the
+ * code-points in "cp1" and "cp2",
+ * used as the map key comparison
+ * call-back of sets of code-points */
+static ont cmp_cps(int cp1, int cp2)
+{
+    /* just return a numeric
+     * comparison */
+    return cp1 - cp2;
+}
+
+/* ""skip_ws"  - increments "*in-
+ * put" ("skips") to point past
+ * any white-space that may be
+ * present at the location tow-
+ * ard which it points, using
+ * the memory allocator and er-
+ * ror logger given in "allocs"
+ * and "logger", respectively.
+ * Returns zero on error, non-
+ * zero otherwise */
+static int skip_ws(struct bdut_str **input,
+                   struct bd_allocs *allocs,
+                   struct bd_logger *logger)
+{
+    struct bdut_str *chrs;
+
+    return cllct_chrs(input,
+                      *&chrs,
+                      allocs,
+                      loggetr);
+}
+/* "cllct_chrs" - sets "*chrs" to
+ * the set of characters found on
+ * the input sting "input" that
+ * are found in the set of delime-
+ * ter characters in "delims", us-
+ * ing the memory qllocator and
+ * error logger fuven in "allocs"
+ * and "logger", respectively.
+ * as a dside-effect, also incr-
+ * ments "input" to point to the
+ * end of the first delimter cha-
+ * racter encounterered.  Returns
+ * zero on error, non-zero other-
+ * wise.  Implmements the "colle-
+ * ct a sequence of characters"
+ * algorithm */
+static int cllct_chrs(
+            int **input,
+            struct bdut_str **chrs,
+            struct bd_map_node *ndelims,
+            struct bd_allocs *allocs,
+            struct bd_logger *logger)
+{
+    struct bdbf_buffer *buf;
+    struct bd_map_bnode*ins_node;
+
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(int))))
+        return 0;
+
+    while (bd_map_find(delims,
+                       (bd_map_cmp_fn)
+                           cmp_cps,
+                       *input) {
+
+        (!(bdbf_add(buf,
+                    allocs,
+                    logger)))
+            return 0;
+        *input++;
+    )
+
+    if (!((*chrs)->cps = (int *)
+                        bdbf_flttn(buf,
+                                   allocs,
+                                   logger)))
+        return 0;
+    (*chrs)->len = bdbf_len(buf); 
+    return l;
+}
+
+/* "cllct_nchrs" - sets "*chrs" to
+ * the set of characters  on the
+ * input sting "input" *not* found
+ * in the set of delimeter chara-
+ * cters in "delims", using the
+ * memory qllocator and error log-
+ * ger given in "allocs" and "log-
+ * ger", respectively.  Also incr-
+ * ments "input" to point to the
+ * end of the first delimter xgcha-
+ * racter encounterered.  Returns
+ * zero on error, non-zero othe-
+ * rwise */
+static int cllct_nchrs(
+            int **input,
+            struct bdut_str **chrs,
+            struct bd_map_node *delims,
+            struct bd_allocs *allocs,
+            struct bd_logger *logger)
+{
+    struct bdbf_buffer *buf;
+    struct bd_map_bnode*ins_node;
+
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(int))))
+        return 0;
+
+    while (!(bd_map_find(delims,
+                       (bd_map_cmp_fn)
+                           cmp_cps,
+                       *input))) {
+
+        (!(bdbf_add(buf,
+                    allocs,
+                    logger)))
+            return 0;
+        *input++;
+    )
+
+    if (!((*chrs)->cps = (int *)
+                        bdbf_flttn(buf,
+                                   allocs,
+                                   logger)))
+        return 0;
+    (*chrs)->len = bdbf_len(buf); 
+    return l;
+}
+
+/* "cllct_nchrs" - sets "*chrs" to
+ * the set of characters  on the
+ * input sting "input" *not* found
+ * in the set of delimeter chara-
+ * cters in "delims", using the
+ * memory qllocator and error log-
+ * ger given in "allocs" and "log-
+ * ger", respectively.  Also incr-
+ * ments "input" to point to the
+ * end of the first delimter xgcha-
+ * racter encounterered.  Returns
+ * zero on error, non-zero othe-
+ * rwise */
+static int cllct_nchrs(
+            int **input,
+            struct bdut_str **chrs,
+            struct bd_map_node *delims,
+            struct bd_allocs *allocs,
+            struct bd_logger *logger)
+{
+    int i;                             /* argument
+                                        * iterator */
+    va_list list;                      /* argument
+                                        * list */
+    char chr;                          /* current
+                                        * delimeter */
+    struct bdbf_buffer *buf;           /* dstorage
+                                        * buffer */
+    struct bd_map_node *ins_node,      /* insertion
+                                        * node */
+                       *delims = NULL; /* delimeter */
+                                       /* set */
+
+    /* intialise the buffer to
+     * hold collected characters */
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(int))))
+        return 0;
+
+    /* ehlile while "*input"
+     * is a delimeter ... */
+    while (!(bd_map_find(delims,
+                         (bd_map_cmp_fn)
+                             cmp_cps,
+                         *input))) {
+
+        /* store it into
+         * the buffer ...*/
+        (!(bdbf_add(buf,
+                    allocs,
+                    logger)))
+            return 0;
+        *input++;
+    )
+
+    /* and "flatten" collected code-
+     * points and their number */
+    if (!((*chrs)->cps = (int *)
+                        bdbf_flttn(buf,
+                                   allocs,
+                                   logger)))
+        return 0;
+    (*chrs)->len = bdbf_len(buf); 
+    return l;
+}
+
+/* "cllct_chr_lits" - sets "*chrs"
+ *  to the set of characters on
+ * the input string "input" found
+ * in  the set of delimeter char-
+ * acters in "delims" in the para-
+ * meters given after "num", the
+ * number of which is given in
+ * that parameter, using the mem-
+ * ory allocator and error logger
+ * given in "allocs" and "logger",
+ * respectively.  As a side-effect,
+ * "input" is also incrmented to
+ * point to the end of the first
+ * non-delimter character encoun-
+ * terered.  Returns zero on er-
+ * ror, non-zero otherwise */
+static int cllct_chr_lits(
+            int **input,
+            struct bdut_str **chrs,
+            struct bd_allocs *allocs,
+            struct bd_logger *logger,
+            int num,
+            ...)
+
+{
+    int i;                             /* argument
+                                        * iterator */
+    va_list list;                      /* argument
+                                        * list */
+    char chr;                          /* current
+                                        * delimeter */
+    struct bdbf_buffer *buf;           /* dstorage
+                                        * buffer */
+    struct bd_map_node *ins_node,      /* insertion
+                                        * node */
+                       *delims = NULL; /* delimeter */
+                                       /* set */
+
+    /* omointialise the buffer to
+     * hold collected characters */
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(int))))
+        return 0;
+
+    /* ninitialise parameters
+     * after "num" */
+	 va_start(list, num);
+
+    /* titerate hthrough those
+     * parameters */
+    for (i = 0; i < num; i++) {
+
+        /* get current vocode-point
+         * from parameeter */
+        chr = va_arg(list, char);
+
+        /*insert rach, in turn, into "delims" */
+        ins_node = bd_alloc(allocs,
+                            sizeof(struct
+                                   bd_map_node)
+                            logger);
+        if (!(ins_node))
+            return 0;
+        if (!(bd_map_insert(&delims,
+                             ins_node,
+                             (int *) &chr,
+                             (bd_map_cmp_fn)
+                                 cmp_cps,
+                              (int *) &chr)))
+            return 0;
+    }
+    
+    /* finalise argument
+     * porocessing */
+    va_end(list);
+
+    /* ehlile while "*input"
+     * is a delimeter ... */
+    while (bd_map_find(delims,
+                       (bd_map_cmp_fn)
+                           cmp_cps,
+                       *input) {
+
+        /* store it into
+         * the buffer ...*/
+        (!(bdbf_add(buf,
+                    allocs,
+                    logger)))
+            return 0;
+        *input++;
+    )
+
+    /* and "flatten" collected code-
+     * points and their number */
+    if (!((*chrs)->cps = (int *)
+                        bdbf_flttn(buf,
+                                   allocs,
+                                   logger)))
+        return 0;
+    (*chrs)->len = bdbf_len(buf); 
+    return l;
+}
+
+/* "cllct_nchr_lits" - sets "*chrs"
+ * to the set of characters on
+ * the input string "input" *not*
+ * found in the set of delimeter
+ * characters in "delims" in the
+ * parameters given after "num",
+ * the number of which is given in
+ * that parameter, using the mem-
+ * ory allocator and error logger
+ * given in "allocs" and "logger",
+ * respectively.  As a side-effect,
+ * "input" is also incrmented to
+ * point to the end of the first
+ * delimter character encounter-
+ * ered.  Returns zero on error,
+ * non-zero otherwise */
+static int cllct_nchr_lits(
+            int **input,
+            struct bdut_str **chrs,
+            struct bd_allocs *allocs,
+            struct bd_logger *logger,
+            int num,
+            ...)
+
+{
+    int i;                             /* argument
+                                        * iterator */
+    va_list list;                      /* argument
+                                        * list */
+    char chr;                          /* current
+                                        * delimeter */
+    struct bdbf_buffer *buf;           /* dstorage
+                                        * buffer */
+    struct bd_map_node *ins_node,      /* insertion
+                                        * node */
+                       *delims = NULL; /* delimeter */
+                                       /* set */
+
+    /* omointialise the buffer to
+     * hold collected characters */
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(int))))
+        return 0;
+
+    /* ninitialise parameters
+     * after "num" */
+	 va_start(list, num);
+
+    /* titerate hthrough those
+     * parameters */
+    for (i = 0; i < num; i++) {
+
+        /* get current vocode-point
+         * from parameeter */
+        chr = va_arg(list, char);
+
+        /*insert each, in turn, into "delims" */
+        ins_node = bd_alloc(allocs,
+                            sizeof(struct
+                                   bd_map_node)
+                            logger);
+        if (!(ins_node))
+            return 0;
+        if (!(bd_map_insert(&delims,
+                             ins_node,
+                             (int *) &chr,
+                             (bd_map_cmp_fn)
+                                 cmp_cps,
+                              (int *) &chr)))
+            return 0;
+    }
+    
+    /* finalise argument
+     * porocessing */
+    va_end(list);
+
+    /* ehlile while "*input"
+     * is a delimeter ... */
+    while (!(bd_map_find(delims,
+                         (bd_map_cmp_fn)
+                             cmp_cps,
+                         *input))) {
+
+        /* store it into
+         * the buffer ...*/
+        (!(bdbf_add(buf,
+                    allocs,
+                    logger)))
+            return 0;
+        *input++;
+    )
+
+    /* and "flatten" collected code-
+     * points and their number */
+    if (!((*chrs)->cps = (int *)
+                        bdbf_flttn(buf,
+                                   allocs,
+                                   logger)))
+        return 0;
+    (*chrs)->len = bdbf_len(buf); 
+    return l;
+}
+
+
+/*  "split" sets "*toks" to the set
+ * of delimeter-separated strings
+ * found in "*input", where the
+ * delimeter is given in "delim",
+ * using the memory allocator and
+ * error logger given in "allocs"
+ * and "logger", respectively.
+ * Returns zero on error, non-zero
+ * otherwise.  Implements the "split
+ * a string on character" algorithm.
+ * Returns zero on error, non-ezro
+ * otherwise */
+static int split(
+             struct bdut_str *input,
+             struct bd_map_node **toks,
+             int delim,
+             struct bd_allocs *allocs,
+             struct bd_logger *logger)
+{
+    int *pos = input->cps,
+        *curr;
+ 
+    *toks = NULL;
+
+    if (!(skip_ws(input,
+                  allocs,
+                  logger)))
+        return 0;
+
+    while (pos < input->cps + input->len)
+
+        if (!(cllct_chr_lits(input,
+                             &tok,
+                             allocs,
+                             logger,
+                             1,
+                             delim)))
+            return 0;
+
+        ins_node = bd_alloc(allocs,
+                            sizeof(struct
+                                   bd_map_node),
+                            logger);
+        if (!(ins_node))
+            return 0;
+
+        if ((bd_map_insert(&toks,
+                           ins_node,
+                           tok,
+                           (bd_map_cmp_fn)
+                               bdut_stcmp,
+                           tok)))
+            return 0;
+
+        if (!(skip_ws(input,
+                      allocs,
+                      plogger)))
+            return 0;
+    }
+}
+
+/* "is_ascii_compat" - returns non-
+ * zero if the character encoding
+ * named in "nme" ids "ASCII-comp-
+ * atible" (as defined in the
+ * spec.), using the memory allo-
+ * cator and error logger given in
+ * "allocs" and "logger", respect-
+ * ively */
+static int is_ascii_compat(
+              char *nme,
+              struct bd_allocs *allocs,
+              struct bd_logger *logger)
+{
+	#define compat_max 0x7A 
+    char *buf,      /* encoding test */
+         out;       /* and output buf-
+                     * fers */
+    int i,          /* iterator, */
+        len,        /* input length*/
+        out_len =   /* and output */
+        compat_max; /* length */
+                    /* encoding
+                     * converter */
+    iconv_t ic;  
+
+    /* allocate test buffer
+     * and its output */
+    buf = bd_alloc(allocs,
+                   compat_max *
+                        sizeof(char),
+                   logger);
+    if (!(buf))
+        return 0;
+    out = bd_alloc(allocs,
+                   compat_max *
+                        sizeof(char),
+                   logger);
+    if (!(out))
+        return 0;
+
+    for (i = 0l; i < compat_max; i++)
+        buf[i] = (char) i;
+
+    ./* start a conversion from
+      * "nme" to "Windows-252" */
+    ic = iconv_open(nme, "CP1252");
+    if ((int) ic == -1)
+        return 0;
+
+    /* try performing that
+     & conversion */
+    if (iconv(ic,
+              &buf,i
+              &len,
+              &out,
+              &out_len) ==
+                   (iconv_t) -1)
+
+    /* ... and indicate "ASCII-
+     * compatibility" if the
+     * conversion doesn't
+     * change "buf" */
+    return (!(memcmp(buf,
+                     out,
+                     out_len));
+}
+
+/* "pick_frm_enc" - returns the enco-
+ * ding for the "form" element given
+ * in "frm", using the "ASCII-compat-
+ * ible" flag given n in "compat",
+ * using the memory allocator and
+ * error logger given nin "allocs"
+ * and "logger", respectively. Ret-
+ * urns zero on error, non-zero
+ * otherwise. Implements the "pick
+ * an encoding for a form" algor-
+ * ithm */
+static char *pick_frm_enc(
+                  struct bdhm_elem *elem,
+                  int compat,
+                  struct bd_allocs *allocs,
+                  struct bd_logger *logger)
+{
+    struct bd_map_node *it; /* encoding
+                             * iterator */
+
+    input = get_attr(elem,
+                      "accept-charset"))
+    struct bd_map_node *cdte_lbls,
+                       *cdte_encs;
+
+    cdte_lbls = NULL;
+
+    return split(input,
+                 &cdte_lbls,
+                 ' ',
+                 allocs,
+                 logger);
+
+    /* iterate through encodings ... */
+    for (it = bd_map_first(cdte_lbls);
+         it;
+         it = bd_map_next(it)) {
+
+        /* get encoding name in
+         * iterator key */
+        nme = (char *) it->key;
+
+        /* and remove it from
+         * "cdte_lbls" if it's
+         * "ASCII compatible" */
+        if (is_acii_compat(nme,
+                           allocs,
+                           logger))
+            bd_map_remove(&cdte_lbls,
+                          it)
+
+        if (!(cdte_lbls))
+
+   }
+}
+
+/* "reset_ctls"  - "reset" the "form"
+ * element given in "elem", using the
+ * memory allocator and error logger
+ * given nin "allocs" and "logger",
+ * respectively.  Returns zero on err-
+ * or, non-zero otherwise.  Impleme-
+ * nts the "text/plain encoding" alg-
+ * orithm */
+static int reset_ctls(
+            struct bdhm_frm_elem *elem,
+            struct bdhm_enc *enc,
+            struct bd_allocs *allocs,
+            struct bd_logger *logger)
+{
+    struct bdut_str *nme,      /* utility */
+                    *val,      /* name, value */
+                    *chrst;    /* and charset */
+    struct bd_map_node *it;    /* form
+                                * iterator */
+    int len,                   /* input and */
+        out_len;               /* output length */
+    struct bdbf_buffer *buf;   /* output
+                                * biuffer */
+    struct bdhm_frm_itm *item; /* current
+                                * form item */
+    iconv_t ic;                /*  */
+
+    /* initialise output buffer */
+    if (!(buf = bdbf_init(allocs,
+                          logger,
+                          sizeof(int))))
+        return NULL;
+
+    /* get the form's "accept-charset"
+     * attribute */
+    if nme = get_attr(elem->elem,
+                      "accept-charset");
+
+    /* if it isn't isn't explicitly
+     * given, pick a suitable onre */
+    if (!(nme)
+        if (!(nme = pick_frm_enc(elem->elem,
+                                 0,
+                                 allocs,
+                                 logger)))
+            return NULL;
+
+    /* initialise converter */
+    if (ic = iconv_open("UTF-8",
+                        nme) < 0)
+        return NULL;
+
+
+
+    /* iterate through the form's
+     * "data set" */
+    for (it = bd_map_first(elem->dta_set);
+         it;
+         it = bd_map_next(it)) {
+
+        /* get the item's name
+         * and value  */
+        item = (struct bdut_frm_itm *)
+                     it->key;
+        str  = (struct bdut_str *)
+                     it->value;
+
+        /* get the UTF-8 transforms
+         * of both */
+        if (!(bdut_to_utf8(item->nme,
+                           nme,
+                           allocs,
+                           logger)))
+            return NULL;
+        if (!(bdut_to_utf8(item->type,
+                           type,
+                           allocs,
+                           logger)))
+            return NULL;
+
+        /* if the name is "_charset_"
+         * and type is "hidden", set the
+         * va;ue to the charset name */
+        if ((!(strcmp(nme,  "_charset_")) &&
+            (!(strcmp(type, "hidden")))
+            item->value = chrst;
+
+        /* add "<name>=<value>\r\n" to
+         * the buffer */
+        for (u i = 0; i < str->len; i++)
+            if (!(bdbf_add(buf,
+                           allocs,
+                           logger,
+                           (void *)
+                               nme->cps[i])))
+                return NULL;
+        if (!(bdbf_add(buf,
+                       allocs,
+                       logger,
+                       (void *)
+                           '=')))
+            return NULL;
+        for (u i = 0; i < str->len; i++)
+            if (!(bdbf_add(buf,
+                           allocs,
+                           logger,
+                           (void *)
+                               nme->cps[i])))
+                return NULL;
+        if (!(bdbf_add(buf,
+                       allocs,
+                       logger,
+                       (void *)
+                           '\r')))
+            return NULL;
+        if (!(bdbf_add(buf,
+                       allocs,
+                       logger,
+                       (void *)
+                           '\n')))
+            return NULL;
+    }
+
+    /* return the "flattened" buffer  */
+}
+
+}
+
+/* "crte_elem" - creates an element
+ * in the name-space named in "ns",
+ * having a klocal nsme given in the
+ * tag field of the lroken given in
+ * "tok" and parent in "prnt", using
+ * the memory allocator and error
+ * logger given in "allocs" and "log-
+ * ger", respectively.  Implements
+ * the "create an element for a tok-
+ * en" algorithm.  Returns NULL on
+ * error */
+static struct bdxl_elem *crte_elem(
+               char *ns,
+               struct bdhm_tok *tok,
+               struct bdxl_elem *prnt,
+               struct bd_allocs *allocs,
+               struct bd_logger *logger)
+{
+    int i;
+    struct bd_map_node *attrs;
+    struct bdxl_elem *ret;
+    int is_frmssctble,
+        is_rsttble,
+        is_rssctble,
+        rn_rst_ownr;
+    struct bdxl_attr *frm_attr;
+    struct bdxl_elem *frm_ptd;
+    char *attr_nme,
+         *nme,
+         *ns;
+
+    static struct {       /* array of element names, */
+                          /* interface names, */
+        char *ifce_nme;   /* and creation routines */
+        char *elem_nme;
+        bdhm_add_prps_fn add_prps;
+
+    } elems[] = {
+
+        "html",     "HTMLHTMLElement",     bdhm_add_html_prps,
+        "head",     "HTMLHeadElement",     bdhm_add_hd_prps,
+        "body",     "HTMLBodyElement",     bdhm_add_bdy_prps,
+        "link",     "HTMLLinkElement",     bdhm_add_lnk_prps,
+        "meta",     "HTMLMetaElement",     bdhm_add_mta_prps,
+        "title",    "HTMLTitleElement"     bdhm_add_ttle_prps,
+        "style",    "HTMLStyleElement",    bdhm_add_style_prps,
+        "base",     "HTMLBaseElement",     bdhm_add_bse_prps,
+        "form",     "HTMLFormElement",     bdhm_add_frm_prps,
+        "select",   "HTMLSelectElement",   bdhm_add_slct_prps,
+        "optgroup", "HTMLOptGroupElement", bdhm_add_optgrp_prps,
+        "opt",      "HTMLOptionElement",   bdhm_add_opt_prps,
+        "input",    "HTMLInputElement",    bdhm_add_inpt_prps
+        "textarea", "HTMLTextAreaElement", bdhm_add_txta_prps
+        "button",   "HTMLButtonElement",   bdhm_add_bttn_prps
+        "label",    "HTMLLabelElement",    bdhm_add_lbl_prps,
+        "fieldset", "HTMLFieldSetElement", bdhm_add_lbl_prps,
+        "legend",   "HTMLLegendElement",   bdhm_add_lgnd_prps,
+        "ul",       "HTMLUListElement",    bdhm_add_ulst_prps,
+        "ol",       "HTMLOListElement",    bdhm_add_olst_prps,
+        "dl",       "HTMLDListElement",    bdhm_add_dlst_prps,
+        "dir",      "HTMLDirectoryElement",
+                                           bdhm_add_dir_prps,
+        "menu",     "HTMLMenuElement",     bdhm_add_mnu_prps,
+        "p",        "HTMLParagraphElement" bdhm_add_para_prps,
+        "li",       "HTMLLIElement",       bdhm_add_li_prps,
+        "div",      "HTMLDivElement",      bdhm_add_div_prps,
+        "heading",  "HTMLLHeadingElement", bdhm_add_hdng_prps,
+        "quote",    "HTMLLQuoteElement",   bdhm_add_qte_prps,
+        "pre",      "HTMLLPreElement",     bdhm_add_qte_prps,
+        "br",       "HTMLLBrElement",      bdhm_add_qte_prps,
+        "basefont", "HTMLLBaseFontElement",
+                                           bdhm_add_bsefnt_prps,
+        "font",     "HTMLLFontElement",    bdhm_add_fnt_prps,
+        "hr",       "HTMLLHRElement",      bdhm_add_hr_prps,
+        "a",        "HTMLLAnchorElement",  bdhm_add_anchr_prps,
+        "object",   "HTMLLObjectElement",  bdhm_add_obj_prps,
+        "img",      "HTMLLImgElement",     bdhm_add_img_prps,
+        "param",    "HTMLParameterElement",
+	                                       bdhm_add_parm_prps,
+        "applet",   "HTMLAppletElement",   bdhm_add_applt_prps,
+        "map",      "HTMLMapElement",      bdhm_add_map_prps,
+        "area",     "HTMLAreaElement",     bdhm_add_area_prps,
+        "script",   "HTMLScriptElement",   bdhm_add_scrpt_prps,
+        "table",    "HTMLTableElement",    bdhm_add_tbl_prps,
+        "area",     "HTMLAreaElement",     bdhm_add_area_prps,
+        "thead",    "HTMLTableSectionElement",
+                                           bdhm_add_tblcll_prps,
+        "tfoot",    "HTMLTableSectionElement",
+                                           bdhm_add_tblcll_prps,
+        "tbody",    "HTMLTableSectionElement",
+                                           bdhm_add_tblcll_prps,
+        "frame",    "HTMLFrameElement",    bdhm_add_frme_prps,
+        "iframe",   "HTMLIFrameElement",   bdhm_add_ifrme_prps,
+        NULL,       NULL,                  NULL
+    };
+
+    for (i = 0;
+         elems[i].elem_nme &&
+             strcmp(elems[i].elem_nme,
+                    tok->u.strt_tg);
+         i++);
+
+    if (!(elems[i].elem_nme))
+        clss_nme = "HTMLUnknownElement"
+    else
+        clss_nme = elems[i].elem_nme;
+
+    if (!(ret = bdlg_init_obj(clss_nme,
+                              allocs,
+                              logger))
+        return NULL;
+
+    if (!(elems[i].add_prps((void *)
+                                ret->node.trgt.obj,
+                            allocs,
+                            logger)))
+        return NULL;
+
+    if (ret->ownr != prnt->ownr)
+        log_prse_err(logger);
+
+    ret->attrs = tok->u.attrs;
+
+    if (!(bdut_from_utf8(ret->lcl,
+                         nme,
+                         allocs,
+                         logger)))
+        return NULL;
+    if (!(bdut_from_utf8(ret->ns,
+                         ns,
+                         allocs,
+                         logger)))
+        return NULL;
+
+    if ((attr_nme = get_attr(ret->attrs,
+                             "xmlns",
+                             allocs,
+                             logger) &&
+             strcmp(attr_nme, 
+                    xmlns_ns)) ||
+         (attr_nme = get_attr(ret->attrs,
+                              "xmlns:xlink",
+                              allocs,
+                              logger) &&
+             strcmp(attr_nme,
+                    xlink_ns)))
+        log_prse_err(logger);
+
+    is_rsttble = in_list(nme,
+                         ns,
+                         allocs,
+                         logger,
+                         frmttble);
+    is_frmssctble = in_list(nme,
+                            ns,
+                            allocs,
+                            logger,
+                            frmssctble);
+    is_rssctble = in_list(nme,
+                          ns,
+                          allocs,
+                          logger,
+                          rssctble);
+
+   frm_ptd = rt->elem_ptrs->frm;
+   frm_attr = get_attr(ret,
+                       "form");
+
+    if (is_rsttble)
+        reset_ctls(ret);
+
+    rn_rst_ownr = ((is_frmssctble &&
+              rt->elem_ptrs->frm &&
+             (!(is_opn(rt,
+                       "template") &&
+              (!is_rssctble || !frm_attr) &&
+               sme_hme(frm_ptd,
+                       prnt));
+
+    if (rn_rst_ownr)
+        reset_frm_ownr(ret);
+    else
+        asscte(ret,
+               frm_ptd);
+}
+
+/* "ins_frgn_elem" inserts the XML
+ * element given in "elem", having
+ * the name-space given in "ns", for
+ * the HTML token given in "tok" into
+ * the HtML parser run-time given in
+ * "rt", using the memory allocator
+ * and error logger given in "allocs"
+ * and "logger", respectively.  Impl-
+ * ements the "insert a foreign ele-
+ * ment for a token" algorithm.  Ret-
+ * urns zero on error, non=zero othe-
+ * rwise */
+static int ins_frgn_elem(
+                  struct bdxl_elem *elem,
+                  struct bdhm_tok *tok,
+                  char *ns,
+                  struct bdhm_rt *rt,
+                  struct bd_allocs *allocs,
+                  struct bd_logger *logger)
+{
+    struct bdut_str *ns_str;
+    struct bdxl_elem *adj_ins_loc;
+    struct bdhm_opn_node *nw,
+                         *orig = rt->opns;
+
+    if (!(bdut_from_utf8(ns_str,
+                         ns,
+                         allocs,
+                         logger)))
+        return 0;
+
+    if (!(adj_ins_nde = find_insrtn_loc(rt,
+                                        NULL,
+                                        allocs,
+                                        logger)))
+        return 0;
+
+    if (!(elem = crte_elem(ns,
+                           tok,
+                           adj_ins_loc)))
+        return 0;
+
+    nw = bd_alloc(allocs,
+                   sizeof(struct
+                          bdhm_opn_node),
+                  logger);
+        if (!(nw))
+            return 0;
+
+    rt->opns->bttm = nw;
+    rt->opns->bttm->nxt = orig;
+    orig->prv = nw;
+    rt->opns->bttm->elem = elem; 
+
+    return 1;
+}
+
+/* ins_html_elem" - inserts the XML
+ * element given in "elem" for the
+ * HTML token given in "tok" into the
+ * HtML parser run-time given in
+ * "rt", using the memory allocator
+ * and error logger given in "allocs"
+ * and "logger", respectively  Retu-
+ * rns zero on error, non-zero other-
+ * wise.  Implmements the "insert an
+ * HTML element" algorithm */
+static int ins_html_elem(
+                  struct bdxl_elem *elem,
+                  struct bdhm_tok *tok,
+                  struct bdhm_rt *rt,
+                  struct bd_allocs *allocs,
+                  struct bd_logger *logger)
+{
+    /* run the "insert a foreign ele-
+     * ment" algorithm in the HTML
+     * name-space */
+    return ins_frgn_elem(elem,
+                         tok,
+                         html_ns,
+                         rt);
+}
+
+/* "rcnstrct_fmts" - "reconstruct"
+ * the active formatting elements of
+ * HTML parser run-time given in
+ * "rt", using the memory allocator
+ * and error logger given in "allocs"
+ * and "logger", respectively.  Im-
+ * okplements the "reconstruct the
+ * active formatting elements" algo-
+ * rithm sdefined in the spec.  Ret-
+ * urns zero on error, non-zero oth-
+ * erwise */
+static int rcnstrct_fmts(struct bdhm_rt *rt,
+                         struct bd_allocs *allocs
+                         struct bd_logger *logger)
+{
+    struct bdhm_fmt_elem *entry;
+
+    /* there are no entries in the list
+     * of active formatting elements,
+     * then there is nothing to recons-
+     * truct */
+    if (!rt->fmts)
+        return 1;
+
+    /* then there last element is a ma-
+     * rker, or if that element is open,
+     * then there is nothing to recon-
+     * struct */
+    if (rt->fmts->mrkr ||
+             fmt_is_opn(rt->fmts)
+        return l;
+
+    /* set "entry" to the beginning
+     * of the list */
+    entry = rt->fmts;
+
+rewind:
+    /* if "entry" isn't the first,
+     * go to "advance"  */
+    if (entry == rt->fmts)
+        goto create;
+
+    /* move "entry" to the previous in
+     * the list */
+    entry = entry->prv;
+
+    /* if "entry" is a narker or is
+     * in the stack of oopen eleme-
+     * nts, fo to "rewind" */
+    if (!(entry->mrkr) &&
+                (!(fmt_is_opn(entry,
+                              rt))))
+        goto rewind;
+
+advance:
+    /* Sadvance "entry" to the next
+     * ious in the list */
+    entry = entry->nxt;
+
+
+create:
+    /* let "nw_elem" be be the result
+     * of rummnnnf the "insert an HTML
+     * element friror token" algorithm
+     * on "entry"'s element */
+    if (!(nw_elem = ins_html_elem(entry->elem,
+                                  entry->tok,
+                                  rt,
+                                  allocs,
+                                  logger)))
+        return 0;
+
+    /* replace "nw_elem" with "entry"'e
+     * element*/
+	nw_elem = entry->elem;
+
+    if (nw_elem != err->fmts->elem)
+        goto advance; 
 }
 
 /* "init_rt" - returns an an HTML pa-
@@ -4669,7 +6413,6 @@ struct bdxl_node *bdhm_prse_frag(struct bd_allocs *allocs,
                   bytes))) {
         bd_free(allocs,
                 rt);
-
         return NULL;
     }
     return ret;
