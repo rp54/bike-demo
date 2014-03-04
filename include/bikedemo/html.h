@@ -49,6 +49,7 @@ enum bdhm_cnfdnces {
  * parser */
 enum bdhm_ins_modes {
 
+    bdhm_ins_mode_initl,
     bdhm_ins_mode_bfre_html,
     bdhm_ins_mode_bfre_hd,
     bdhm_ins_mode_in_hd,
@@ -83,19 +84,6 @@ enum bdhm_scpes {
     bdhm_scpe_bttn,
     bdhm_scpe_tble,
     bdhm_scpe_slct
-};
-
-/* "bdhm_cats" enumeration the
- * possible "categories, def-
- * ined in the spec., into wh-
- * relements may gfall, namely:
- * "special", "formatting" and
- * "ordinary" */
-enum bdhm_cats {
-
-    bdhm_cat_spcl,
-    bdhm_cat_frmttng,
-    bdhm_cat_ordnry
 };
 
 /* "bdhm_toks" enumeration - the
@@ -144,9 +132,45 @@ enum bdhm_enc_cnfdncs {
     bdhm_enc_cnfdnce_irrlvnt /* tentative  */
 };
 
-/* "bdhm_tok" - an HTML parser lexi-
+/* "bdhm_add_prps_fn" typedef- proto-type
+ * of the function called to  populate a
+ * memory locaton with the DOM properties
+ * sappropriate to its DOM class, return-
+ * ing th resulting object in its langu-
+ * age-abstracted form
+ *
+ * he first parameter contains a generic
+ * cast of the memory location, and the
+ * second and third are the the memory
+ * allocator and error logger to use,
+ * respectively  */
+typedef struct bdlg_obj *(* bdhm_add_prps_fn) (
+                       void *,
+                       struct bd_allocs *,
+                       struct bd_logger *);
+
+/* "bdhm_enc_fn" typedef - proto-
+ * type of the function called to
+ * fdecode/emcode a stream of
+ * bytes to/from a stream of uni-
+ * code code-points.
+ * 
+ * the first parameter contains
+ * the array of code points
+ * into/from which to convert,
+ * and rgthe second the analag-
+ * ous array of bytes, and the
+ * third and fourth the memory
+ * allocator and error logger to
+ * use.
+ *
+ * EReturns zero on error , non-
+ * zero to otherwise */
+typedef
+  
+  /* "bdhm_tok" - an HTML parser lexi-
  * cal token, capable of analysing
- * an returning smty og og the tokens
+ * an returning smty of the tokens
  * appearing in an HTML-formatted
  * byte stream, consisting of a
  * generic roknen, the token type,
@@ -159,7 +183,7 @@ struct bdhm_tok {
                           * token */
     enum bdhm_toks type; /* token type */
 
-    union u {
+    union {
 
         struct bdhm_doctype *doctype; /* scanned
                                        * DOC-TYPE */
@@ -172,19 +196,30 @@ struct bdhm_tok {
         struct bdut_str *start,       /* scanned  */
                         *end;         /* start and 
                                        * end tags */
-    }
+    } u;
 };
 
-/* "bdhm_elems" structure - the
+/* "bdhm_elem_ptrs" structure - the
  * "element pointers" (as defined in
  * the spec.) of sn HTNKML parser
- * state, consisrting of s "form"
- * element and a "head" element */
+ * state, consisting of a "form"
+ * element pointer and a "head"
+ * element pointer */
 struct bdhm_elem_ptrs {
 
-    struct bdxl_nodelem *hd,  /* "head" and */
-                        *frm; /* "form" ele-
-                               * ments */
+    struct bdxl_elem *hd,  /* "head" and */
+                     *frm; /* "form" ele-
+                            * ments */
+};
+
+/* "bdhm_frm_itm" structure - a single
+ * "item" within a form's "data set",
+ * consisting of the item's name and
+ * type string */
+struct bdhm_frm_itm {
+
+    struct bdut_str *nme,  /* name and */
+                    *type; /* type strings */
 };
 
 /* "bdhm_flgs" structure = the "pars-
@@ -210,7 +245,7 @@ struct bdhm_opn_ends {
 };
 
 /* "bdhm_tmplte_node" structure - a single
- * node in the stack og rtemplate insert-
+ * node in the stack of template insert-
  * ion modes, consisting of that node's
  * mode and a pointer to the next node in
  * the stack */
@@ -233,24 +268,24 @@ struct bdhm_opn_node {
                          *prv; /* ious in stack */
 };
 
-/* "bdhm_fmt_node" structure - a single
- * inode in the stack of list of "active
- * formatting elements" in an HTML par-
- * ser's state, consisting of the form-
- * atting element, aits associated tok-
- * en, an indication as to whether the
- * node is a "marker" (as defined in the
- * spec.) and a reference to the next
- * node in the stack */
-struct bdhm_fmt_node {
+/* "bdhm_fmt_elem" structure - a single
+ * element in the list of "active form-
+ * atting elements" in an HTML parser,
+ * consisting of the formattingelement,
+ * its associated token, an indication
+ * as to whether the node is a "marker"
+ * (as defined in the spec.) and a ref-
+ * erence to the next element in the
+ * stack */
+struct bdhm_fmt_elem {
 
-    struct bdhm_tag *tag;      /* the node's
-                                * tag */
+    struct bdxl_elem *elem;    /* the node's
+                                * element */
     struct bdhm_tok *tok;      /* associated
                                 * token */
     int mrkr;                  /* ewhether is
                                 * a marker */
-    struct bdhm_fmt_node *nxt; /* next ele-
+    struct bdhm_fmt_elem *nxt; /* next ele-
                                 * ment in list */
 };
 
@@ -260,14 +295,10 @@ struct bdhm_fmt_node {
  * ned in the spec.), consisting of an
  * "insertion mode", the stack of curr-
  * ently open elements, a list of "act-
- * ive formatting elements", the allow-
- * ed character" (as defined in the
- * spec. - a negative value if none),
- * a stack of "template insertion mo-
- * des", parsing state flags, whether
- * parsing a "fragment case", the out-
- * put document and the current "ele-
- * ment pointers" */
+ * ive formatting elements", the stack
+ * of "template insertion modes", par-
+ * sing state flags and the current
+ * "element pointers" */
 struct bdhm_rt {
 
     enum bdhm_ins_modes ins_mode;     /* insertion
@@ -276,8 +307,6 @@ struct bdhm_rt {
                                        * stack of
                                        * open ele-
                                        * ments */
-    int allwd_chr;                    /* "allowed
-                                       * character" */
     struct bdhm_fmt_node *fmts;       /* list of
                                        * active fo-
                                        * rmatting
@@ -286,8 +315,6 @@ struct bdhm_rt {
                                        * "template-
                                        * insertion
                                        * modes" */
-    struct bdhm_doc *doc;             /* output
-                                       * document */
     int is_frag;                      /* whether is
                                        * "fragment
                                        * case" */
@@ -1400,7 +1427,34 @@ truct bdhm_tble_rw_elem {
                                * offset */
     int rw_idx,               /* ordinal position */
         rw_sctn_idx;          /* ordinal position
-	                           * within section */
+                               * within section */
+};
+
+/* "bdhm_enc" structure - sn "encoding",
+ * consisting of a textual name and an
+ * encoding function */
+struct bdhm_enc {
+
+    char *nme;      /* identifying name */
+    bfhm_enc_fn fn; /* encoding function */
+};
+
+/* "bdhm_tble_frm_elem" structure - a
+ * "table "form" element, consis-
+ * ting of an embedded HTML element,
+ * its encoding name, encoder func-
+ * tion and form "data set" (param-
+ * eters) */
+truct bdhm_frm_elem {
+
+    struct bdhm_elem elem;       /* embedded HTML
+                                  * element */
+    char *enc_nme;               /* encoding
+                                  * name */
+    bdhm_enc_fn encdr;           /* encoder
+                                  * function */
+    struct bd_map_node *dta_set; /* form "data
+                                  * set" */
 };
 
 /* "bdhm_tble_cll_elem" structure - a
@@ -1550,21 +1604,23 @@ truct bdhm_tble_cll_elem {
 /* "bdhm_set_doc_prps" - returns 
  * a language-abstracted object
  * populated with DOM properties
- * of the HTML Document given in
+ * of the HTML Document, a gener-
+ * ic cast of which is given in
  * the first parameter, using the
  * memory allocator and error lo-
  * gger given in the second and
  * third parameters, respectively.
  * Returns NUL on error */
 struct bdlg_obj *bdhm_add_doc_prps(
-                       struct bdhm_doc *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_elem_prps" - returns 
  * a language-abstracted object
  * populated with DOM properties
- * of the HTML element given in
+ * of the HTML element, a gener-
+ * ic cast of which is given in
  * the first parameter, using
  * the memory allocator and
  * error logger given in the
@@ -1572,7 +1628,7 @@ struct bdlg_obj *bdhm_add_doc_prps(
  * respectively. Returns NULL
  * on error */
 struct bdlg_obj *bdhm_add_elem_prps(
-                       struct bdhm_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1580,13 +1636,14 @@ struct bdlg_obj *bdhm_add_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the main HTML element
- * given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and
  * error logger given in the sec-
  * ond and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_html_elem_prps(
-                       struct bdhm_html_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1594,13 +1651,15 @@ struct bdlg_obj *bdhm_add_html_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Link elem-
- * en given in the first parameter,
- * using the memory allocator and
- * error logger given in the sec-
- * ond and third parameters, resp-
- * ectively. Returns NULL on error */
+ * element, a gener- ic cast of
+ * which is given in the first pa-
+ * rameter, using the memory all-
+ * ocator and error logger given in
+ * the second and third parameters,
+ * respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_lnk_elem_prps(
-                       struct bdhm_lnk_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1608,13 +1667,14 @@ struct bdlg_obj *bdhm_add_lnk_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Head elem-
- * en given in the first parameter,
+ * entelement, a generic cast of
+ * which is in the first parameter,
  * using the memory allocator and
  * error logger given in the sec-
  * ond and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_hd_elem_prps(
-                       struct bdhm_hd_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1622,13 +1682,14 @@ struct bdlg_obj *bdhm_add_hd_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Head elem-
- * en given in the first parameter,
+ * ent, a generic cast of which is
+ * given in the first parameter,
  * using the memory allocator and
  * error logger given in the sec-
  * ond and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_ttle_elem_prps(
-                       struct bdhm_ttle_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1636,13 +1697,14 @@ struct bdlg_obj *bdhm_add_ttle_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Meta elem-
- * en given in the first parameter,
+ * ent, a generic cast of which is
+ * given in the first parameter,
  * using the memory allocator and
  * error logger given in the sec-
  * ond and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_mta_elem_prps(
-                       struct bdhm_mta_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1650,13 +1712,15 @@ struct bdlg_obj *bdhm_add_mta_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Base elem-
- * en given in the first parameter,
- * using the memory allocator and
- * error logger given in the sec-
- * ond and third parameters, resp-
- * ectively. Returns NULL on error */
+ * entelement, a generic cast of
+ * which is given in the first pa-
+ & rameter, using the memory all-
+ * ocator and error logger given in
+ * the second and third parameters,
+ * respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_bse_elem_prps(
-                       struct bdhm_bse_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1664,13 +1728,14 @@ struct bdlg_obj *bdhm_add_bse_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Style elem-
- * en given in the first parameter,
- * using the memory allocator and
- * error logger given in the sec-
- * ond and third parameters, resp-
+ * entelement, a generic cast of wh-
+ * ich  is given in the first para-
+ * meter, using the memory alloca-
+ * tor and error logger given in the
+ * second and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_style_elem_prps(
-                       struct bdhm_style_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1678,27 +1743,30 @@ struct bdlg_obj *bdhm_add_style_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML HTML Form elem-
- * en given in the first parameter,
- * using the memory allocator and
- * error logger given in the seco-
- * nd and third parameters, respec-
- * tively. Returns NULL on error */
+ * entelement, a generic cast of
+ * which is given in the first pa-
+ * rameter, using the memory allo-
+ * cator and error logger given in
+ * the second and third parameters,
+ * respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_frm_elem_prps(
-                       struct bdhm_frm_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
-/* "bdhm_add_frm_bdy_elem_prps" - ret-
- * urns  a language-abstracted obj-
- * ect populated with DOM propert-
- * ies of the HTML Body element
+/* "bdhm_add_frm_bdy_elem_prps" -
+ * returns  a language-abstracted
+ * object populated with DOM pro-
+ * perties of the HTML Body elem-
+ * ent, a generic cast of which is
  * given in the first parameter,
  * using the memory allocator and
  * error logger given in the sec-
  * ond and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_bdy_elem_prps(
-                       struct bdhm_bdy_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1706,91 +1774,96 @@ struct bdlg_obj *bdhm_add_bdy_elem_prps(
  * urns  a language-abstracted obj-
  * ect populated with DOM propert-
  * ies of the HTML Select elem-
- * en given in the first parameter,
+ * ent a generic cast of which is
+ * given in the first parameter,
  * using the memory allocator and
  * error logger given in the sec-
  * ond and third parameters, resp-
  * ectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_slct_elem_prps(
-                       struct bdhm_slct_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_slctoptgrp_elem_prps" - ret-
  * urns a language-abstracted object pop-
  * ulated with DOM properties of the HTML
- * OptGroup element given in the first
- * parameter, using the memory allocator
- * and error logger given in the second
- * and third parameters, respectively.
- * Returns NULL on error */
+ * OptGroup element a generic cast of wh-
+ * ich is given in the first parameter,
+ * using the memory allocator and error
+ * logger given in the second and third
+ * parameters, respectively. Returns NULL
+ * on error */
 struct bdlg_obj *bdhm_add_optgrp_elem_prps(
-                       struct bdhm_optgrp_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_opt_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTM Option
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
+ * element a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error log-
+ * ger given in the second and third
  * parameters, respectively.  Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_opt_elem_prps(
-                       struct bdhm_opt_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_inpt_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTM Option
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns NULL
- * on error */
+ * element a generic cast of which is gi-
+ * ven in the first parameter, using the
+ * memory allocator and errorlogger given
+ * in the second and third parameters,
+ * respectively.  Returns NULL on error */
 struct bdlg_obj *bdhm_add_inpt_elem_prps(
-                       struct bdhm_inpt_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_txta_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Text-
- * Area element given in the first para-
- * meter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively.  Ret-
- * urns NULL on error */
+ * Area element a generic cast of which is
+ * given in the first parameter, using the
+ * memory allocator and error logger given
+ * in the second and third parameters,
+ * respectively.  Returns NULL on error */
 struct bdlg_obj *bdhm_add_txta_elem_prps(
-                       struct bdhm_txta_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_bttn_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Button
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns
- * NULL on error */
+ * element a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively.  Returns NULL
+ * on error */
 struct bdlg_obj *bdhm_add_bttn_elem_prps(
-                       struct bdhm_bse_bttn_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_lbl_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Label
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns
- * NULL on error */
+ * element a generic cast of which is gi-
+ * ven in the first parameter, using the
+ * memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively.  Returns NULL
+ * on error */
 struct bdlg_obj *bdhm_add_lbl_elem_prps(
-                       struct bdhm_lbl_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -1798,425 +1871,442 @@ struct bdlg_obj *bdhm_add_lbl_elem_prps(
  * a language-abstracted object populated
  * with DOM properties of the HTML Field-
  * Set element given in the first parame-
- * ter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively.  Ret-
- * urns NULL on error */
+ * ter a generic cast of which is using
+ * the memory allocator and error logger
+ * given in the second and third paramet-
+ * ers, respectively.  Ret- urns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_fldst_elem_prps(
-                       struct bdhm_bse_fldst_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_lgnd_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Legend
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns
- * NULL on error */
-struct bdlg_obj *bdhm_add_fldst_lgnd_elem_prps(
-                       struct bdhm_bse_lgnd_elem *,
+ * element, a generic cast of which is gi-
+ * ven in the first parameter, using the
+ * memory allocator and error logger given
+ * in the second and third parameters, re-
+ * spectively.  Returns NULL on error */
+struct bdlg_obj *bdhm_add_lgnd_elem_prps(
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_ulst_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML UList
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns
- * NULL on error */
-struct bdlg_obj *bdhm_add_fldst_ulst_elem_prps(
-                       struct bdhm_bse_ulst_elem *,
+ * element, a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively.  Returns NULL on
+ * error */
+struct bdlg_obj *bdhm_add_ulst_elem_prps(
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_olst_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML OList
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns
- * NULL on error */
-struct bdlg_obj *bdhm_add_fldst_olst_elem_prps(
-                       struct bdhm_bse_olst_elem *,
+ * element, a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third parame-
+ * ters, respectively.  Returns NULL on
+ * error */
+struct bdlg_obj *bdhm_add_olst_elem_prps(
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_dlst_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML DList
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively.  Returns
- * NULL on error */
-struct bdlg_obj *bdhm_add_fldst_dlst_elem_prps(
-                       struct bdhm_bse_dlst_elem *,
+ * element, a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third parame-
+ * ters, respectively.  Returns NULL on
+ * error */
+struct bdlg_obj *bdhm_add_dlst_elem_prps(
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_dir_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Dire-
- * ctory element given in the first par-
- * ameter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively.  Ret-
- * urns NULL on error */
-struct bdlg_obj *bdhm_add_fldst_dir_elem_prps(
-                       struct bdhm_bse_dir_elem *,
+ * ctory element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third paramet-
+ * ers, respectively.  Returns NULL on error */
+struct bdlg_obj *bdhm_add_dir_elem_prps(
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_mnu_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Menu
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively.  Returns
  * NULL on error */
-struct bdlg_obj *bdhm_add_fldst_mnu_elem_prps(
-                       struct bdhm_bse_mnu_elem *,
+struct bdlg_obj *bdhm_add_mnu_elem_prps(
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_para_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Para-
- * graph element given in the first par-
- * ameter, using the memory allocator
- * and error logger given in the second
- * and third parameters, respectively.
- * Returns NULL on error */
+ * graph element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_para_elem_prps(
-                       struct bdhm_bse_para_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_li_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML LI
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns NULL
  * on error */
 struct bdlg_obj *bdhm_add_li_elem_prps(
-                       struct bdhm_li_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_div_elem_prps" - returns a
  * language-abstracted object populated
  * with DOM properties of the HTML Div
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns NULL
  * on error */
 struct bdlg_obj *bdhm_add_div_elem_prps(
-                       struct bdhm_div_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_hdng_elem_prps" - returns a
  * language-abstracted object populated
  * with DOM properties of the HTML Head-
- * ing element given in the first param-
- * eter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Ret-
- * urns NULL on error */
+ * ing element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third parame-
+ * ters, respectively. Ret-urns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_hdng_elem_prps(
-                       struct bdhm_hdg_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_qte_elem_prps" - returns a
  * language-abstracted object populated
  * with DOM properties of the HTML Quote
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_qte_elem_prps(
-                       struct bdhm_qte_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_pre_elem_prps" - returns a
  * language-abstracted object populated
  * with DOM properties of the HTML Pre
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_pre_elem_prps(
-                       struct bdhm_pre_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_br_elem_prps" - returns a
  * language-abstracted object populated
  * with DOM properties of the HTML Br
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_br_elem_prps(
-                       struct bdhm_br_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_bsefnt_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Base-
- * Font element given in the first para-
- * meter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Ret-
- * urns NULL on error */
+ * Font element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third parame-
+ * ters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_bsefnt_elem_prps(
-                       struct bdhm_bsefnt_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_fnt_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Font
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Ret-
  * urns NULL on error */
 struct bdlg_obj *bdhm_add_fnt_elem_prps(
-                       struct bdhm_fnt_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_hr_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Hr ele-
- * ment given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively. Returns
- * NULL on error */
+ * ment, a generic cast of which is given
+ * in the first parameter, using the mem-
+ * ory allocator and error logger given
+ * in the second and third parameters,
+ * respectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_hr_elem_prps(
-                       struct bdhm_hr_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_anchr_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Anchor
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_anchr_elem_prps(
-                       struct bdhm_anchr_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_obj_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Object
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_obj_elem_prps(
-                       struct bdhm_obj_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_img_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Image
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_img_elem_prps(
-                       struct bdhm_anchr_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_img_prm_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Para-
- * meter element given in the first para-
- * meter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Retu-
- * rns NULL on error */
+ * meter element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third parame-
+ * ters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_prm_elem_prps(
-                       struct bdhm_prm_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_applt_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Applet
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_applt_elem_prps(
-                       struct bdhm_applt_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_map_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Map
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_map_elem_prps(
-                       struct bdhm_map_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_area_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Area
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_area_elem_prps(
-                       struct bdhm_area_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_scrpt_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Script
- * element given in the first parameter,
- * using the memory allocator and error
- * logger given in the second and third
- * parameters, respectively. Returns
- * NULL on error */
+ * element, a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_scrpt_elem_prps(
-                       struct bdhm_scrpt_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_tbl_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Table
- * element given in the first parameter,
+ * element, a generic cast of which
+ * is given in the first parameter,
  * using the memory allocator and error
  * logger given in the second and third
  * parameters, respectively. Returns
  * NULL on error */
 struct bdlg_obj *bdhm_add_tbl_elem_prps(
-                       struct bdhm_tbl_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_tblcptn_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Table-
- * Caption element given in the first par-
- * ameter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Retu-
- * rns NULL on error */
+ * Caption element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third parameters,
+ * respectively. Returns NULL on error */
 struct bdlg_obj *bdhm_add_tblcptn_elem_prps(
-                       struct bdhm_tblcptn_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_tblcol_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Table-
- * Col element given in the first param-
- * eter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Retu-
- * rns NULL on error */
+ * Col element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_tblcol_elem_prps(
-                       struct bdhm_tblcol_elem *,
-                       struct bd_allocs *,
-                       struct bd_logger *);
-
-/* "bdhm_add_tblcol_elem_prps" - returns
- * a language-abstracted object populated
- * with DOM properties of the HTML Table-
- * Col element given in the first param-
- * eter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Retu-
- * rns NULL on error */
-struct bdlg_obj *bdhm_add_tblcol_elem_prps(
-                       struct bdhm_tblcol_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_tblrw_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Table-
- * Row element given in the first param-
- * eter, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Retu-
- * rns NULL on error */
+ * Row element, a generic cast of which
+ * is given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_tblrw_elem_prps(
-                       struct bdhm_tblrw_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_tblcll_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Table-
- * Cell, using the memory allocator and
- * error logger given in the second and
- * third parameters, respectively. Ret-
- * urns NULL on error */
+ * Cell element, a generic cast of which
+ * is gven in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third paramet-
+ * ers, respectively. Ret- urns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_tblcll_elem_prps(
-                       struct bdhm_tblcolcll_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_frme_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML Frame
- * element, using the memory allocator
- * and error logger given in the second
- * and third parameters, respectively.
- * Returns NULL on error */
+ * element, a generic cast of which is
+ * given in the first parameter, using the
+ * memory allocator and error logger given
+ * in the second and third parameters, res-
+ * pectively.  Returns NULL on error */
 struct bdlg_obj *bdhm_add_frme_elem_prps(
-                       struct bdhm_frme_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
 /* "bdhm_add_ifrme_elem_prps" - returns
  * a language-abstracted object populated
  * with DOM properties of the HTML IFrame
- * element, using the memory allocator
- * and error logger given in the second
- * and third parameters, respectively.
- * Returns NULL on error */
+ * element, a generic cast of which is
+ * given in the first parameter, using
+ * the memory allocator and error logger
+ * given in the second and third param-
+ * eters, respectively. Returns NULL on
+ * error */
 struct bdlg_obj *bdhm_add_ifrme_elem_prps(
-                       struct bdhm_ifrme_elem *,
+                       void *,
                        struct bd_allocs *,
                        struct bd_logger *);
 
@@ -2224,14 +2314,40 @@ struct bdlg_obj *bdhm_add_ifrme_elem_prps(
  * and dispatching call-backs enabling an
  * HTML parser to generate the XML doc-
  * ument equivalent to the HTML document
- * serving as the parser's input, using
- * the memory allocator and error logger
- * given in the first and second parame-
- * ters respectively.  Returns zero on
- * error, non-zero otherwise */
+ * contained found in the parser's input,
+ * using the memory allocator and error
+ * logger given in the first and second
+ * parame-ters respectively.  Returns
+ * zero on error, non-zero otherwise */
 int bdhm_init(struct bd_allocs *,
               struct bd_logger *);
 
+/* "bdhm_prse_doc" - parses, using the
+ * memory allocator and error logger gi-
+ * ven in the firar and second paramet-
+ * ers, respectively, the HTML-formatt-
+ * ed byte stream given in the third
+ * parameter, and returns an XML docu-
+ * ment having equivalent functionality
+ * to the document found in the input
+ * stream.  Returns NULL on error */
+struct bdxl_doc *bdhm_prse_doc(struct bd_allocs *
+                               struct bd_logger *,
+                               struct bdut_bytes *);
+
+/* "bdhm_prse_frag" - parses, using the
+ * memory allocator and error logger gi-
+ * ven in the firar and second paramet-
+ * ers, respectively, the HTML-formatt-
+ * ed byte stream given in the third
+ * parameter, and returns an XML element-
+ * ment having equivalent functionality
+ * to the odocument fragment found in
+ * the input stream.  Returns NULL on
+ * error */
+struct bdxl_node *bdhm_prse_frag(struct bd_allocs *
+                                 struct bd_logger *,
+                                 struct bdut_bytes *);
 
 #ifdef __cplusplus
 }
