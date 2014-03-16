@@ -71,6 +71,17 @@ enum bdhm_ins_modes {
     bdhm_ins_modes_num
 };
 
+/* "bdhm_qrks_mode" renumeration -
+ * the possible "quirks mpde" of
+ * an HTML document: either "on",
+ * "off", or "limited" */
+enum bdhm_qrks_mode {
+
+    bdhm_qrks_on,
+    bdhm_qrks_off,
+    bdhm_qrks_lmtd
+};
+
 /* "bdhm_scpes" enumeration - the
  * possible "scopes" into which
  * all HTML elements fall, namely:
@@ -149,24 +160,6 @@ typedef struct bdlg_obj *(* bdhm_add_prps_fn) (
                        struct bd_allocs *,
                        struct bd_logger *);
 
-/* "bdhm_enc_fn" typedef - proto-
- * type of the function called to
- * fdecode/emcode a stream of
- * bytes to/from a stream of uni-
- * code code-points.
- * 
- * the first parameter contains
- * the array of code points
- * into/from which to convert,
- * and rgthe second the analag-
- * ous array of bytes, and the
- * third and fourth the memory
- * allocator and error logger to
- * use.
- *
- * EReturns zero on error , non-
- * zero to otherwise */
-typedef
   
   /* "bdhm_tok" - an HTML parser lexi-
  * cal token, capable of analysing
@@ -251,9 +244,9 @@ struct bdhm_opn_ends {
  * the stack */
 struct bdhm_tmplte_node {
 
-    enum bdhm_ins_modes ins_mode, /* nodse's mode */
+    enum bdhm_ins_modes ins_mode; /* node's mode */
 
-    struct bdhm_tmplte_node nxt;  /* next node */
+    struct bdhm_tmplte_node *nxt;  /* next node */
 };
 
 /* "bdhm_opn_node" structure - a single
@@ -296,9 +289,9 @@ struct bdhm_fmt_elem {
  * "insertion mode", the stack of curr-
  * ently open elements, a list of "act-
  * ive formatting elements", the stack
- * of "template insertion modes", par-
- * sing state flags and the current
- * "element pointers" */
+ * of "template insertion modes", the
+ * document's URL, parsing state flags
+ * and the current "element pointers" */
 struct bdhm_rt {
 
     enum bdhm_ins_modes ins_mode;     /* insertion
@@ -318,6 +311,8 @@ struct bdhm_rt {
     int is_frag;                      /* whether is
                                        * "fragment
                                        * case" */
+    struct bdut_str *url;             /* document's
+                                       * URL */
     struct bdhm_elem_ptrs *elem_ptrs; /* "element
                                        * pointers" */
     struct bdhm_flgs *flgs;           /* parser
@@ -342,13 +337,13 @@ ztruct bdhm_doctype {
 };
 
 /* "bdhm_tag" structure an HTML
- * "tag", consisting of the
- * tag name and name-space, an
- * indication as to whether the
- * tag is "self closing" (doe-
- * sn't require an end tag) and
- * a set of attributes */
-struct bdhm_tag {
+ * "tag", consisting of its name
+ & and name-space, an indication
+ * as to whether the tag is "self
+ * closing" (that is, doesn't
+ * require an end tag) and a set
+ * of attributes */
+struct bdhm_tg {
 
     struct bdut_str *nme,      /* tag name and */
                      ns;       /* name-space  */
@@ -367,9 +362,9 @@ struct bdhm_tag {
  * buffer into which input is
  * collected as well as ano-
  * ther temporary buffer abns
- * the currently scanned start
- * tag, end tags and stry set
- * of attributes */
+ * the currently scanned tag,
+ * and sdata and set of attr-
+ * ibutes */
 
 struct bdhm_tok {
 
@@ -378,10 +373,10 @@ struct bdhm_tok {
     enum bdhm_toks type;         /* token type */
 
     union {
+        struct bdut_str *dta;         /* data */
         struct bdhm_doctype *doctype; /* scanned
                                        * DOC-TYPE */
-        struct bdhm_tag *strt,        /* start and */
-                        *end;         /* end tags */
+        struct bdhm_tg *tg;           /* tag */
         int chr;                      /* current
                                        * character */
         struct bd_map_node *attrs;    /* attributes */
@@ -409,9 +404,10 @@ struct bdhm_elem {
 
 /* "bdhm_doc" structure - an HTML document,
  * consisting of an embedded XML document,
- * t,"head" and "body" elements and collec-
- * tions of the doocument's links, images
- * and cookies (amongst others) */
+ * t,"head" and "body" elements, collections
+ * of the doocument's links, images and
+ * cookies (amongst others) and the docu-
+ * ment's "quirks mode" */
 struct bdhm_doc {
 
     struct bdxl_doc doc;       /* embedded
@@ -428,10 +424,39 @@ struct bdhm_doc {
                       *lnks,   /* applets, */
                       *frms,   /* flinks, */
                       *anchrs, /* orms, */
-                      &ckies;  /* anchors
+                      *ckies;  /* anchors
                                 * and
                                 * cookies */
+    enum bdhm_qrks_mode	qrks;  /* document's
+                                * "quirks
+                                * mode"*/
 }
+
+/* "bdhm_pat" - information related
+ * to a DOC-TYPE ID and its usage, consi-
+ * sting of an indication as to whether
+ * the ID should be matched and the pat-
+ * tern against which the ID should be
+ * matched */
+struct bdhm_pat {
+
+   int use;    /* whether
+                * should be
+                * matched */
+   char *ipar, /* the ID
+                * pattern */
+};
+
+/* "bdhm_pubsys" - auxiliary data stru-
+ * cture used to store validation inf-
+ * ormation related to the public and
+ * system IDs of a DOC-TYPE, respectively */
+struct bdhm_pubsys {
+
+    vldte_pat *pub, /* public and */
+              *sys; /* system ID
+                     * usages */
+};
 
 /* "bdhm_html_elem structure - a docum-
  * ent's maub "HTML" element, consisting
@@ -451,6 +476,7 @@ struct bdhm_html_elem {
  * HTML element and the document profile
  * string */
 struct bdhm_hd_elem {
+	*
 
     struct bdhm_elem elem;    /* embedded
                                * HTML ele-
@@ -2324,15 +2350,18 @@ int bdhm_init(struct bd_allocs *,
 
 /* "bdhm_prse_doc" - parses, using the
  * memory allocator and error logger gi-
- * ven in the firar and second paramet-
+ * ven in the firat and second paramet-
  * ers, respectively, the HTML-formatt-
- * ed byte stream given in the third
- * parameter, and returns an XML docu-
- * ment having equivalent functionality
- * to the document found in the input
- * stream.  Returns NULL on error */
+ * ed byte stream given in the fourth
+ * parameter, having the URL given in
+ * the third parameter, returning an
+ * XML document having equivalent func-
+ * tionality to the document found in
+ * the input stream.  Returns NULL
+ * on error */
 struct bdxl_doc *bdhm_prse_doc(struct bd_allocs *
                                struct bd_logger *,
+                               struct bdut_str *,
                                struct bdut_bytes *);
 
 /* "bdhm_prse_frag" - parses, using the
